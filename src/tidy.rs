@@ -21,7 +21,7 @@ pub fn tidy(input: &str, raw: &HashMap<String, OptVal>) -> Result<TidyResult, St
     let mut warnings = missing_key_warnings(&ast);
 
     let mut ast = ast;
-    for transform in generate_pipeline(&options) {
+    for transform in generate_pipeline(&options)? {
         let result = transform(ast);
         ast = result.ast;
         warnings.extend(result.warnings);

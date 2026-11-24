@@ -63,7 +63,7 @@ fn visit(
 /// Build the ordered list of transforms to apply for the given options. Port of
 /// `generateTransformPipeline`. Transforms whose enabling option is off are omitted; the
 /// result is dependency-sorted.
-pub fn generate_pipeline(options: &Options) -> Vec<TransformFn> {
+pub fn generate_pipeline(options: &Options) -> Result<Vec<TransformFn>, String> {
     let mut pipeline: Vec<Transform> = Vec::new();
 
     if options.months {
@@ -101,15 +101,24 @@ pub fn generate_pipeline(options: &Options) -> Vec<TransformFn> {
         &[],
         transforms::format_page_range(),
     ));
-    if let Some(template) = &options.generate_keys {
+    if let Some(kt) = &options.generate_keys {
+        // Resolve the template (auto-append + validation) upfront: upstream's invalid
+        // marker/modifier and non-string-template throws are data-independent, so
+        // validating here and returning Err is behaviorally identical.
+        let template = crate::generate_keys::resolve_template(kt)?;
         pipeline.push(tr(
             "generate-keys",
             &[],
-            transforms::generate_keys(template.clone()),
+            transforms::generate_keys(template),
         ));
     }
-    if let Some(max) = options.max_authors {
-        pipeline.push(tr("limit-authors", &[], transforms::limit_authors(max)));
+    // Upstream gates on `if (options.maxAuthors)` — JS truthiness, so 0/NaN skip.
+    if let Some(max) = options.max_authors.filter(|m| *m != 0.0 && !m.is_nan()) {
+        pipeline.push(tr(
+            "limit-authors",
+            &[],
+            transforms::limit_authors(max as usize),
+        ));
     }
     if options.lowercase {
         pipeline.push(tr(
@@ -213,8 +222,8 @@ pub fn generate_pipeline(options: &Options) -> Vec<TransformFn> {
         transforms::wrap_values(&indent, options.align, options.wrap),
     ));
 
-    sort_pipeline(pipeline)
+    Ok(sort_pipeline(pipeline)
         .into_iter()
         .map(|t| t.apply)
-        .collect()
+        .collect())
 }

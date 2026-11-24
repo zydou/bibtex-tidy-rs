@@ -1,0 +1,16 @@
+{
+  "name": "cli-genkeys-dup-template",
+  "args": [
+    "--generate-keys=[year][duplicateNumber]"
+  ],
+  "stdin": "@article{a, year={2023}, title={T}}\n@article{b, year={2023}, title={T}}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@article{20231a,\n  year          = {2023},\n  title         = {T}\n}\n@article{20232b,\n  year          = {2023},\n  title         = {T}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}
