@@ -174,12 +174,12 @@ Slice references the phase unit that ports it.
 
 ## Phases
 
-- [ ] Phase 0: Bootstrap
+- [x] Phase 0: Bootstrap
   - [x] Initialize & pin `upstream/` submodule @ `e9795a7`
   - [x] Fix `origin` remote to port repo (`zydou/bibtex-tidy-rs`)
   - [x] Record oracle provenance
   - [x] Initial commit (template + submodule pin + PLAN.md)
-- [ ] Phase 1 (S1): Oracle harness
+- [x] Phase 1 (S1): Oracle harness
   - [x] Case format + capture mode (run original) + check mode (run Rust)
   - [x] Capture CLI-surface fixtures (version/help/stdin/unknown/mod/out/backup/quiet/v2) — 28 cases
   - [x] Convert upstream `test/spec/*.yaml` corpus into parity cases (input+options→output+warnings) — 91/91 landed via `define_spec_cases.py` (full corpus; no unported transforms remain)
@@ -191,7 +191,7 @@ Slice references the phase unit that ports it.
   - [x] Option normalization + pipeline + `tidy()` (CORE-04..06)
   - [x] Always-on + default transforms (XF-05, XF-06, XF-09, XF-10, XF-12, XF-18, XF-23, XF-24, XF-26, XF-27, XF-28)
   - [x] Gates green: G-FMT / G-LINT / G-TEST (12 unit) / G-PARITY (28/28 CLI corpus), G-SMOKE
-- [ ] Phase 3 (S3): Transform & value slices (bottom-up)
+- [x] Phase 3 (S3): Transform & value slices (bottom-up)
   - [x] VALUE-01/02/03 (latex, name, value nodes) — VALUE-01 `latex::flatten`/`render_as_text` + VALUE-02 `name::parse_name_list` + VALUE-03 value-node helpers landed
   - [x] UNI-01 unicode tables (generate from `unicode.ts`)
   - [x] Parser correctness (B-001 nested braces, B-002 literal-`,` field stranding) — found by the spec corpus
