@@ -69,30 +69,42 @@ pub fn generate_pipeline(options: &Options) -> Vec<TransformFn> {
     if options.months {
         pipeline.push(tr("months", &[], transforms::months()));
     }
-    // TODO(drop-all-caps): wired in the S3 sub-unit that ports it.
+    if options.drop_all_caps {
+        pipeline.push(tr("drop-all-caps", &[], transforms::drop_all_caps()));
+    }
     if options.encode_urls {
         pipeline.push(tr("encode-urls", &[], transforms::encode_urls()));
     }
-    // TODO(unescape-characters): `if options.unescape { ... } else { escape }`.
-    match options.escape {
-        Escape::Off => {}
-        Escape::Legacy => pipeline.push(tr(
-            "escape-characters",
+    if options.unescape {
+        pipeline.push(tr(
+            "unescape-characters",
             &[],
-            transforms::escape_characters(false),
-        )),
-        Escape::New => pipeline.push(tr(
-            "escape-characters",
-            &[],
-            transforms::escape_characters(true),
-        )),
+            transforms::unescape_characters(),
+        ));
+    } else {
+        match options.escape {
+            Escape::Off => {}
+            Escape::Legacy => pipeline.push(tr(
+                "escape-characters",
+                &[],
+                transforms::escape_characters(false),
+            )),
+            Escape::New => pipeline.push(tr(
+                "escape-characters",
+                &[],
+                transforms::escape_characters(true),
+            )),
+        }
     }
     pipeline.push(tr(
         "format-page-range",
         &[],
         transforms::format_page_range(),
     ));
-    // TODO(generate-keys / limit-authors / merge-entries): wired when ported.
+    // TODO(generate-keys / merge-entries): wired when ported.
+    if let Some(max) = options.max_authors {
+        pipeline.push(tr("limit-authors", &[], transforms::limit_authors(max)));
+    }
     if options.lowercase {
         pipeline.push(tr(
             "lowercase-entry-type",

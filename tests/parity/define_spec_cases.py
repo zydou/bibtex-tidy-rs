@@ -30,12 +30,9 @@ CASES_DIR = PORT_ROOT / "tests" / "parity" / "cases"
 
 # Transforms not yet ported (S3 in progress). Specs using these are skipped.
 UNPORTED_OPTIONS = {
-    "dropAllCaps",
     "duplicates",
     "generateKeys",
-    "maxAuthors",
     "merge",
-    "unescape",
 }
 
 

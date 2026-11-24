@@ -1,0 +1,16 @@
+{
+  "name": "spec-max-authors-maximum-number-of-authors",
+  "args": [
+    "--max-authors=4"
+  ],
+  "stdin": "@ARTICLE {test,\n  author={Saija Meryem and Kamal Tel and Erika Graziano and Steve Naliaka and Vilmar Kaveri and Yaƙubu Paisley and Daniel Ayaz and Lenore Siemowit and Damian Nurbek and Moreno Kristine and Kortney Tatiana and Zosimos Concepta and Gebahard Jean-Charles and Lamija Nagendra and Liidia Nunziatina and Mattias Erika and Zorione Dona and Gyeong-Suk Netanyahu and Shaniqua Oier and Kiley Mehrnaz and Şan Christina and Stefanie Puleng and Regīna Kristofor and Pancratius Grigori and Viktor Ami and Walter Enya and Coeus Ariah and Rosalía Cyrilla and Iomhar Lyyti and Birgit Costantino}\n}\n@ARTICLE {test2,\n  author={Saija Meryem and Kamal Tel}\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@article{test,\n  author        = {Saija Meryem and Kamal Tel and Erika Graziano and Steve Naliaka and others}\n}\n@article{test2,\n  author        = {Saija Meryem and Kamal Tel}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "spec-unescape-unescape-quote-protected-escapes-in-quoted-values",
+  "args": [
+    "--unescape"
+  ],
+  "stdin": "@misc{q,\n  author = \"G{\\\"{u}}lbahar\"\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@misc{q,\n  author        = \"Gülbahar\"\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

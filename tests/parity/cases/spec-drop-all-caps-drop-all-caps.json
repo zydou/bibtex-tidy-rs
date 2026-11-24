@@ -1,0 +1,16 @@
+{
+  "name": "spec-drop-all-caps-drop-all-caps",
+  "args": [
+    "--drop-all-caps"
+  ],
+  "stdin": "@inproceedings{Smith2009,\n    author=\"Caroline JA Smith\",\n    year=2009,\n    month=dec,\n    title={{Quantum somethings}},journal={Journal of {B}lah},\n    booktitle={JOURNAL OF SOMETHINGS},\n  url={http://example.com/something_with/unusual?characters=faoo#bar},\n  volume = {VOLUME VII}\n  }\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@inproceedings{Smith2009,\n  author        = \"Caroline JA Smith\",\n  year          = 2009,\n  month         = dec,\n  title         = {{Quantum somethings}},\n  journal       = {Journal of {B}lah},\n  booktitle     = {Journal Of Somethings},\n  url           = {http://example.com/something_with/unusual?characters=faoo#bar},\n  volume        = {Volume VII}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

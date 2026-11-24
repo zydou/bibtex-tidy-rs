@@ -1,0 +1,16 @@
+{
+  "name": "spec-unescape-unescape-core-latex-escapes-to-unicode-180",
+  "args": [
+    "--unescape"
+  ],
+  "stdin": "@misc{q,\n  author = {G\\\"{u}lbahar and Dvo\\v{r}ák},\n  title = {Chars \\_, \\$, \\@, \\&, \\'{e}, \\={u}, --, ---, ``quoted'', \\ldots{}}\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@misc{q,\n  author        = {Gülbahar and Dvořák},\n  title         = {Chars _, $, @, &, é, ū, –, —, “quoted”, …}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

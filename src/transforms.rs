@@ -12,6 +12,7 @@ use crate::ast::{
 use crate::latex::{self, Block as LatexBlock, LatexNode};
 use crate::types::{TransformFn, TransformResult, Warning};
 use crate::unicode::{core_special_character, special_character};
+use crate::unicode_data::CORE_SPECIAL_CHARACTERS_REVERSIBLE;
 use crate::utils::{unwrap_text, wrap_text};
 use crate::value_nodes::{
     enclose_latex_in_curly, render_field_value, render_value_node, replace_value_node_text,
@@ -907,6 +908,241 @@ fn encode_underscores(s: &str) -> String {
         }
     }
     out
+}
+
+/// Title-case the values of fields that contain no lowercase letters (all-caps titles).
+/// Port of `createDropAllCapsTransform`.
+pub fn drop_all_caps() -> TransformFn {
+    Box::new(|ast| {
+        let visitors = Visitors {
+            braced: Some(Box::new(|block, ctx| {
+                drop_all_caps_visit(&Value::Braced(block), ctx.current_field())
+            })),
+            quoted: Some(Box::new(|block, ctx| {
+                drop_all_caps_visit(&Value::Quoted(block), ctx.current_field())
+            })),
+            ..Default::default()
+        };
+        TransformResult {
+            ast: walk(ast, &visitors),
+            warnings: vec![],
+        }
+    })
+}
+
+fn drop_all_caps_visit(value: &Value, field: Option<&Field>) -> Option<Vec<Value>> {
+    let field = field?;
+    // Only rewrite when the whole field value has no lowercase letters.
+    if render_field_value(field)
+        .chars()
+        .any(|c| c.is_ascii_lowercase())
+    {
+        return None;
+    }
+    let rendered = render_value_node(value);
+    Some(vec![replace_value_node_text(value, &title_case(&rendered))])
+}
+
+/// Capitalize the first letter of each word, lowercasing the rest, but leave Roman
+/// numerals untouched. Port of `titleCase`.
+fn title_case(s: &str) -> String {
+    let chars: Vec<char> = s.chars().collect();
+    let mut out = String::new();
+    let mut i = 0;
+    while i < chars.len() {
+        if is_word_char(chars[i]) {
+            // A "word" is a word character followed by maximal non-whitespace (`(\w)(\S*)`).
+            let start = i;
+            i += 1;
+            while i < chars.len() && !chars[i].is_whitespace() {
+                i += 1;
+            }
+            let word: String = chars[start..i].iter().collect();
+            if is_roman_numeral(&word) {
+                out.push_str(&word);
+            } else {
+                let mut wc = word.chars();
+                let first = wc.next().unwrap_or_default();
+                out.extend(first.to_uppercase());
+                let rest: String = wc.collect();
+                out.push_str(&rest.to_lowercase());
+            }
+        } else {
+            out.push(chars[i]);
+            i += 1;
+        }
+    }
+    out
+}
+
+/// JS `\w`: ASCII letters, digits, and underscore.
+fn is_word_char(c: char) -> bool {
+    c.is_ascii_alphanumeric() || c == '_'
+}
+
+/// Matches `/^M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/`.
+fn is_roman_numeral(s: &str) -> bool {
+    let b = s.as_bytes();
+    let n = b.len();
+    let mut i = 0;
+    let mut m = 0;
+    while m < 4 && i < n && b[i] == b'M' {
+        i += 1;
+        m += 1;
+    }
+    i = match_hundreds(b, i);
+    i = match_tens(b, i);
+    i = match_units(b, i);
+    i == n
+}
+
+fn match_hundreds(b: &[u8], mut i: usize) -> usize {
+    let n = b.len();
+    if i + 1 < n && b[i] == b'C' && b[i + 1] == b'M' {
+        return i + 2;
+    }
+    if i + 1 < n && b[i] == b'C' && b[i + 1] == b'D' {
+        return i + 2;
+    }
+    if i < n && b[i] == b'D' {
+        i += 1;
+    }
+    let mut c = 0;
+    while c < 3 && i < n && b[i] == b'C' {
+        i += 1;
+        c += 1;
+    }
+    i
+}
+
+fn match_tens(b: &[u8], mut i: usize) -> usize {
+    let n = b.len();
+    if i + 1 < n && b[i] == b'X' && b[i + 1] == b'C' {
+        return i + 2;
+    }
+    if i + 1 < n && b[i] == b'X' && b[i + 1] == b'L' {
+        return i + 2;
+    }
+    if i < n && b[i] == b'L' {
+        i += 1;
+    }
+    let mut x = 0;
+    while x < 3 && i < n && b[i] == b'X' {
+        i += 1;
+        x += 1;
+    }
+    i
+}
+
+fn match_units(b: &[u8], mut i: usize) -> usize {
+    let n = b.len();
+    if i + 1 < n && b[i] == b'I' && b[i + 1] == b'X' {
+        return i + 2;
+    }
+    if i + 1 < n && b[i] == b'I' && b[i + 1] == b'V' {
+        return i + 2;
+    }
+    if i < n && b[i] == b'V' {
+        i += 1;
+    }
+    let mut u = 0;
+    while u < 3 && i < n && b[i] == b'I' {
+        i += 1;
+        u += 1;
+    }
+    i
+}
+
+/// Truncate the `author` field to `max` names, appending "others". Port of
+/// `createLimitAuthorsTransform`.
+pub fn limit_authors(max: usize) -> TransformFn {
+    Box::new(move |ast| {
+        let visitors = Visitors {
+            braced: Some(Box::new(|block, ctx| {
+                limit_authors_visit(&Value::Braced(block), ctx.current_field(), max)
+            })),
+            quoted: Some(Box::new(|block, ctx| {
+                limit_authors_visit(&Value::Quoted(block), ctx.current_field(), max)
+            })),
+            ..Default::default()
+        };
+        TransformResult {
+            ast: walk(ast, &visitors),
+            warnings: vec![],
+        }
+    })
+}
+
+fn limit_authors_visit(value: &Value, field: Option<&Field>, max: usize) -> Option<Vec<Value>> {
+    let field = field?;
+    if field.name.to_lowercase() != "author" {
+        return None;
+    }
+    let rendered = render_value_node(value);
+    let authors: Vec<&str> = rendered.split(" and ").collect();
+    if authors.len() <= max {
+        return None;
+    }
+    let mut kept: Vec<String> = authors[..max].iter().map(|s| s.to_string()).collect();
+    kept.push("others".to_string());
+    Some(vec![replace_value_node_text(value, &kept.join(" and "))])
+}
+
+/// Reverse the core Unicode->LaTeX escaping inside braced/quoted values. Port of
+/// `createUnescapeCharactersTransform`.
+pub fn unescape_characters() -> TransformFn {
+    // escaped -> character, longest escaped first (mirrors the original's module-level sort).
+    let mut table: Vec<(char, String)> = CORE_SPECIAL_CHARACTERS_REVERSIBLE
+        .iter()
+        .map(|(cp, escaped)| {
+            (
+                char::from_u32(*cp).expect("valid codepoint"),
+                escaped.to_string(),
+            )
+        })
+        .collect();
+    table.sort_by_key(|(_, escaped)| std::cmp::Reverse(escaped.chars().count()));
+
+    Box::new(move |ast| {
+        let visitors = Visitors {
+            braced: Some(Box::new(|block, _ctx| {
+                let rendered = latex::stringify(&block);
+                Some(vec![Value::Braced(latex::parse(&unescape(
+                    &rendered, false, &table,
+                )))])
+            })),
+            quoted: Some(Box::new(|block, _ctx| {
+                let rendered = latex::stringify(&block);
+                Some(vec![Value::Quoted(latex::parse(&unescape(
+                    &rendered, true, &table,
+                )))])
+            })),
+            ..Default::default()
+        };
+        TransformResult {
+            ast: walk(ast, &visitors),
+            warnings: vec![],
+        }
+    })
+}
+
+/// Replace every escaped core sequence with its Unicode character. When `quoted`, first
+/// undo the `{"...}` forms (escaped sequences wrapped in braces). Port of
+/// `unescapeCharacters`.
+fn unescape(value: &str, quoted: bool, table: &[(char, String)]) -> String {
+    let mut result = value.to_string();
+    if quoted {
+        for (character, escaped) in table {
+            if escaped.contains('"') {
+                let braced = format!("{{{escaped}}}");
+                result = result.replace(&braced, &character.to_string());
+            }
+        }
+    }
+    for (character, escaped) in table {
+        result = result.replace(escaped.as_str(), &character.to_string());
+    }
+    result
 }
 
 /// Sort the fields of each entry by a preferred field order (case-insensitive); fields not
