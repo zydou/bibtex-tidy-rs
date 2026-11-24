@@ -98,12 +98,12 @@ fn observe(case: &Value, tmp: &Path) -> Observation {
 
     let mut child = cmd.spawn().expect("spawn binary");
     let stdin = case["stdin"].as_str().unwrap_or("");
-    child
-        .stdin
-        .take()
-        .expect("stdin")
-        .write_all(stdin.as_bytes())
-        .expect("write stdin");
+    {
+        let mut stdin_handle = child.stdin.take().expect("stdin");
+        // The binary may exit without reading stdin (e.g. --version/--help or an error
+        // path); a broken pipe there is expected, so ignore write errors.
+        let _ = stdin_handle.write_all(stdin.as_bytes());
+    } // closing stdin signals EOF for cases that do read it
 
     let out = child.wait_with_output().expect("wait for binary");
     Observation {

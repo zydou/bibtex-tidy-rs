@@ -1,0 +1,25 @@
+---
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  gates:
+    name: Gates (fmt / clippy / test / parity)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Format (G-FMT)
+        run: cargo fmt --all -- --check
+      - name: Clippy (G-LINT)
+        run: cargo clippy --all-targets --locked -- -D warnings
+      - name: Test (G-TEST)
+        run: cargo test --locked --all-targets
+      - name: Parity (G-PARITY)
+        # Parity fixtures are committed, so this runs without the upstream checkout.
+        run: cargo test --test parity_check -- --ignored
