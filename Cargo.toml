@@ -1,0 +1,21 @@
+[package]
+name = "bibtex-tidy"
+version = "1.15.1"
+edition = "2024"
+description = "A Rust reimplementation of the bibtex-tidy."
+repository = "https://github.com/zydou/bibtex-tidy-rs"
+
+[[bin]]
+name = "bibtex-tidy"
+path = "src/main.rs"
+
+[profile.dev]
+opt-level = 1
+debug = "line-tables-only"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+opt-level = "z"
+panic = "abort"

@@ -1,0 +1,189 @@
+# Port plan: bibtex-tidy
+
+Rust port of [FlamingTempura/bibtex-tidy](https://github.com/FlamingTempura/bibtex-tidy) — a BibTeX cleaner/formatter CLI.
+
+## Progress snapshot
+
+- Upstream pin: <https://github.com/FlamingTempura/bibtex-tidy.git> @ `e9795a784cc7dbdca0c13cb4047606683d8fc018` (v1.15.1-4-ge9795a7; original `--version` = `v1.15.1`)
+- Sync target: none
+- Oracle binary: `upstream/bin/bibtex-tidy` (committed build artifact at the pin commit; sha256 `ccd2cb1233d3c127b408f3b2d19ab30e5535eb1e933ad43a6437af61c5697373`; run with `node` v24.22.2; reports `v1.15.1`)
+- Working end-to-end: none yet (skeleton pending)
+- Current stage: S0 Recon
+- Next: S1 — build `tests/parity/` oracle harness and self-check against the original
+- Blockers: none
+
+## Scope decisions
+
+- **In scope (§2):** the terminal CLI (`upstream/src/cli/cli.ts` + the tidy core it drives): arg parsing, option normalization, the parse → transform → format pipeline, stdin/file I/O, `--modify`/`--output`/backup, exit codes, logging.
+- **Out of scope (not ported, not counted as gaps):** the Svelte web UI (`upstream/src/ui/**`), the browser/editor integrations, the npm library surface (`bibtex-tidy.d.ts`, `index.ts` re-exports as a published SDK), the Docker image (`upstream/docker`), and the Playwright visual-regression tests. Delivered as a `[[bin]]` only — no `lib.rs`.
+
+## Capability inventory
+
+Class: `direct` = direct match | `diverge` = known divergence | `n/a` = out of scope.
+Slice references the phase unit that ports it.
+
+### CLI surface & I/O
+
+| ID     | Capability                 | Args/options                                                                                   | I/O & exit codes                                                                                             | Notes                                   | Class  | Slice |
+| ------ | -------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | --------------------------------------- | ------ | ----- |
+| CLI-01 | Version                    | `--version`, `-v`                                                                              | stdout `v1.15.1`, exit 0                                                                                     | Precedes help                           | direct | S2    |
+| CLI-02 | Help                       | `--help`, `-h`; also when no input & no stdin                                                  | stdout man page, exit 0                                                                                      | Help text is ours (not copied verbatim) | direct | S2    |
+| CLI-03 | Input selection            | positional `[infile]`; stdin when no file & `!isTTY` & `PRE_COMMIT!=1`; legacy `-` means stdin | reads file/stdin as UTF-8                                                                                    | `-` deprecated, warns                   | direct | S2    |
+| CLI-04 | Output routing             | default stdout; `-o/--output <path>`; `-m/--modify` overwrite input; `--no-modify`             | file write or stdout                                                                                         | v1 defaults to modify for files         | direct | S2    |
+| CLI-05 | Backup                     | `--backup` / `--no-backup`                                                                     | copies `<path>` → `<path>.original`                                                                          | default true; only valid with modify    | direct | S2    |
+| CLI-06 | Unknown args               | any unrecognized option                                                                        | stderr `Unknown option(s): …` + hint, exit 1                                                                 |                                         | direct | S2    |
+| CLI-07 | Logging                    | —                                                                                              | stderr/stdout `Tidying...`, `Done. Successfully tidied N entries.`, `N entries merged`, `CODE: msg` warnings | suppressed by `--quiet` or stdout mode  | direct | S2    |
+| CLI-08 | `--quiet`                  | `--quiet`                                                                                      | suppresses logs                                                                                              |                                         | direct | S2    |
+| CLI-09 | `--v2`                     | `--v2`                                                                                         | disables default-modify; enables v2 stdio                                                                    | gating flag                             | direct | S2    |
+| CLI-10 | Deprecated stdio for files | file input + no `-o`/`-m` + no `--v2`                                                          | warns NOTICE, forces modify+backup                                                                           |                                         | direct | S2    |
+
+### Options (defaults & aliases)
+
+| ID     | Option(s)                                                 | Type                 | Default                                        | Class  | Slice |
+| ------ | --------------------------------------------------------- | -------------------- | ---------------------------------------------- | ------ | ----- |
+| OPT-01 | `--omit`                                                  | string[]             | `[]`                                           | direct | S3    |
+| OPT-02 | `--curly`/`--no-curly`                                    | bool                 | false                                          | direct | S3    |
+| OPT-03 | `--numeric`/`--no-numeric`                                | bool                 | false                                          | direct | S3    |
+| OPT-04 | `--months`                                                | bool                 | false                                          | direct | S3    |
+| OPT-05 | `--space`/`--tab`                                         | bool\|number         | space=2, tab=false                             | direct | S2    |
+| OPT-06 | `--align`/`--no-align`                                    | bool\|number         | 14                                             | direct | S2    |
+| OPT-07 | `--blank-lines`/`--no-blank-lines`                        | bool                 | false                                          | direct | S3    |
+| OPT-08 | `--sort`/`--no-sort`                                      | bool\|string[]       | `["key"]` when set                             | direct | S3    |
+| OPT-09 | `--duplicates`                                            | bool\|enum[]         | `["doi","citation","abstract"]` when merge set | direct | S3    |
+| OPT-10 | `--merge`/`--no-merge`                                    | bool\|enum           | —                                              | direct | S3    |
+| OPT-11 | `--strip-enclosing-braces`                                | bool                 | false                                          | direct | S3    |
+| OPT-12 | `--drop-all-caps`                                         | bool                 | false                                          | direct | S3    |
+| OPT-13 | `--escape`/`--no-escape`/`--escape=new`                   | bool\|"new"          | true (legacy)                                  | direct | S3    |
+| OPT-14 | `--unescape`                                              | bool                 | false                                          | direct | S3    |
+| OPT-15 | `--sort-fields` / `--sort-properties` (alias, deprecated) | bool\|string[]       | —                                              | direct | S3    |
+| OPT-16 | `--strip-comments`/`--no-strip-comments`                  | bool                 | false                                          | direct | S3    |
+| OPT-17 | `--trailing-commas`/`--no-trailing-commas`                | bool                 | false                                          | direct | S3    |
+| OPT-18 | `--encode-urls`/`--no-encode-urls`                        | bool                 | false                                          | direct | S3    |
+| OPT-19 | `--tidy-comments`/`--no-tidy-comments`                    | bool                 | true                                           | direct | S2    |
+| OPT-20 | `--remove-empty-fields`/`--no-…`                          | bool                 | false                                          | direct | S3    |
+| OPT-21 | `--remove-dupe-fields`/`--no-…`                           | bool                 | true                                           | direct | S3    |
+| OPT-22 | `--generate-keys`                                         | bool\|string         | —                                              | direct | S3    |
+| OPT-23 | `--max-authors`                                           | number               | —                                              | direct | S3    |
+| OPT-24 | `--no-lowercase`                                          | bool                 | true (lowercase on)                            | direct | S3    |
+| OPT-25 | `--enclosing-braces`                                      | bool\|string[]       | —                                              | direct | S3    |
+| OPT-26 | `--remove-braces`                                         | bool\|string[]       | —                                              | direct | S3    |
+| OPT-27 | `--wrap`/`--no-wrap`                                      | bool\|number         | 80                                             | direct | S2    |
+| OPT-28 | `--sort-properties`                                       | alias of sort-fields | —                                              | direct | S3    |
+
+### Core engine
+
+| ID       | Capability                                                                             | Notes                                                                                                                    | Class  | Slice |
+| -------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------ | ----- |
+| CORE-01  | BibTeX parser                                                                          | entries, fields, values (braced/quoted/numeric/bare/concat), comments, `@string`, `@preamble`, `@comment`; `convertCRLF` | direct | S2    |
+| CORE-02  | AST model + walkers                                                                    | immutable walker w/ pruning (pin refactor 12c6625)                                                                       | direct | S2    |
+| CORE-03  | Formatter                                                                              | alignment, indentation, wrapping, blank lines, trailing commas, comment tidying                                          | direct | S2    |
+| CORE-04  | Option normalization + defaults                                                        | `normalizeOptions`, `convertBoolean` coercions                                                                           | direct | S2    |
+| CORE-05  | Pipeline construction + dependency sort                                                | `generateTransformPipeline`, `sortPipeline`                                                                              | direct | S2    |
+| CORE-06  | `tidy()` orchestration + warnings (`MISSING_KEY`) + count                              |                                                                                                                          | direct | S2    |
+| VALUE-01 | LaTeX parser (special characters / commands)                                           |                                                                                                                          | direct | S3    |
+| VALUE-02 | Name-field parser (author/editor formats, von/last/first/jr)                           |                                                                                                                          | direct | S3    |
+| VALUE-03 | Value-node helpers (`fieldValues.ts`, `valueNodes.ts`)                                 |                                                                                                                          | direct | S3    |
+| KEYS-01  | Key generation + entry-key template parser                                             | `[auth]`,`[year]`,`[veryshorttitle]`,`:lower`,`:required`,`:len`, `duplicateNumber`, JabRef patterns                     | direct | S3    |
+| DUP-01   | Duplicate detection (doi/key/abstract/citation) + merge (first/last/combine/overwrite) |                                                                                                                          | direct | S3    |
+| UNI-01   | Unicode escape/unescape tables + LaTeX command maps                                    | `unicode.ts` (2144 LOC, generated) + `unicodeCore.ts`                                                                    | direct | S3    |
+
+### Transforms (order per `pipeline.ts`)
+
+| ID    | Transform             | Option gate                | Class  | Slice |
+| ----- | --------------------- | -------------------------- | ------ | ----- |
+| XF-01 | abbreviateMonths      | `months`                   | direct | S3    |
+| XF-02 | dropAllCaps           | `dropAllCaps`              | direct | S3    |
+| XF-03 | encodeUrls            | `encodeUrls`               | direct | S3    |
+| XF-04 | unescapeCharacters    | `unescape`                 | direct | S3    |
+| XF-05 | escapeCharacters      | `escape` (legacy vs `new`) | direct | S3    |
+| XF-06 | formatPageRange       | always                     | direct | S3    |
+| XF-07 | generateKeys          | `generateKeys`             | direct | S3    |
+| XF-08 | limitAuthors          | `maxAuthors`               | direct | S3    |
+| XF-09 | lowercaseEntryType    | `lowercase`                | direct | S3    |
+| XF-10 | lowercaseFields       | `lowercase`                | direct | S3    |
+| XF-11 | mergeEntries          | `merge` or `duplicates`    | direct | S3    |
+| XF-12 | removeSpecifiedFields | `omit`                     | direct | S3    |
+| XF-13 | encloseBraces         | `enclosingBraces`          | direct | S3    |
+| XF-14 | preferCurly           | `curly`                    | direct | S3    |
+| XF-15 | preferNumeric         | `numeric`                  | direct | S3    |
+| XF-16 | removeBraces          | `removeBraces`             | direct | S3    |
+| XF-17 | removeComments        | `stripComments`            | direct | S3    |
+| XF-18 | removeDuplicateFields | `removeDuplicateFields`    | direct | S3    |
+| XF-19 | removeEmptyFields     | `removeEmptyFields`        | direct | S3    |
+| XF-20 | sortEntries           | `sort`                     | direct | S3    |
+| XF-21 | sortFields            | `sortFields`               | direct | S3    |
+| XF-22 | removeEnclosingBraces | `stripEnclosingBraces`     | direct | S3    |
+| XF-23 | resetWhitespace       | always (`tidyComments`)    | direct | S3    |
+| XF-24 | indentFields          | always                     | direct | S3    |
+| XF-25 | blankLines            | `blankLines`               | direct | S3    |
+| XF-26 | alignValues           | always                     | direct | S3    |
+| XF-27 | fieldCommas           | always (`trailingCommas`)  | direct | S3    |
+| XF-28 | wrapValues            | always (`wrap`)            | direct | S3    |
+
+### Out of scope (not ported; excluded by §2, not gaps)
+
+- `src/ui/**` (Svelte web app, CodeMirror editor, Playwright VR tests)
+- npm library packaging / `.d.ts` API surface / `optionsToCLIArgs` consumer helper
+- Docker image & `docker/`
+- `build.ts` (esbuild bundling)
+
+## Registers
+
+### Divergences (D-###)
+
+| ID    | Capability | Scenario    | Original behavior                                 | Rust behavior                                                | Rationale                                                                               | Parity case |
+| ----- | ---------- | ----------- | ------------------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------- | ----------- |
+| D-001 | CLI-02     | `--help`    | prints upstream man page (generated `manPage.ts`) | prints our own help text describing the same option surface  | Contract forbids copying user-facing text verbatim; help is non-functional (INV-PARITY) | parity: help exits 0, mentions every option flag |
+| D-002 | CLI-01     | `--version` | prints `v1.15.1`                                  | prints `v<crate_version>`; crate version tracked to upstream | version string must track the ported upstream release                                   | parity: `--version` = `v1.15.1` |
+
+### Bugs fixed (B-###)
+
+| ID  | Capability | Defect   | Fix | Evidence | Parity case |
+| --- | ---------- | -------- | --- | -------- | ----------- |
+| —   | —          | none yet |     |          |             |
+
+### Non-portable (N-###)
+
+| ID  | Capability | Original behavior | Why not portable | Mitigation |
+| --- | ---------- | ----------------- | ---------------- | ---------- |
+| —   | —          | none yet          |                  |            |
+
+## Dependency mapping (original → Rust)
+
+| Original                                 | Rust crate                              | Notes |
+| ---------------------------------------- | --------------------------------------- | ----- |
+| hand-rolled arg parser (`argsParser.ts`) | hand-rolled (mirror original semantics) | original has bespoke `--opt=value`, `--opt value`, `--no-x`, positional interleaving; clap would diverge — port the parser faithfully |
+| `node:fs`, `node:process`                | `std::fs`, `std::io`, `std::process`    |       |
+| (no runtime deps in core)                | `std` only for core                     | keep deps minimal per INV-DEPS |
+
+## Phases
+
+- [ ] Phase 0: Bootstrap
+  - [x] Initialize & pin `upstream/` submodule @ `e9795a7`
+  - [x] Fix `origin` remote to port repo (`zydou/bibtex-tidy-rs`)
+  - [x] Record oracle provenance
+  - [ ] Initial commit (template + submodule pin + PLAN.md)
+- [ ] Phase 1 (S1): Oracle harness
+  - [ ] Case format + capture mode (run original) + check mode (run Rust)
+  - [ ] Capture CLI-surface fixtures (version/help/stdin/unknown/mod/out/backup/quiet/v2)
+  - [ ] Convert upstream `test/spec/*.yaml` corpus into parity cases (input+options→output+warnings)
+  - [ ] Self-check: check-mode vs original = 100% green before porting
+- [ ] Phase 2 (S2): Walking skeleton
+  - [ ] Cargo layout, unified error type, exit-code mapping
+  - [ ] Arg parsing (`argsParser` + `optionDefinitions` + `argsToOptions`) — OPT-*, CLI-01..10
+  - [ ] BibTeX parser + AST + formatter (CORE-01..03) — round-trip
+  - [ ] Option normalization + pipeline + `tidy()` (CORE-04..06)
+  - [ ] Always-on transforms for the default path (XF-06, XF-23, XF-24, XF-26, XF-27, XF-28)
+  - [ ] CI wired: G-FMT / G-LINT / G-TEST / G-PARITY green
+- [ ] Phase 3 (S3): Transform & value slices (bottom-up)
+  - [ ] VALUE-01/02/03 (latex, name, value nodes)
+  - [ ] UNI-01 unicode tables (generate from `unicode.ts`)
+  - [ ] Simple field transforms: XF-09, XF-10, XF-17, XF-18, XF-19, XF-12, XF-20, XF-21
+  - [ ] Value transforms: XF-01, XF-02, XF-03, XF-05, XF-04, XF-13, XF-14, XF-15, XF-16, XF-22
+  - [ ] KEY/DUP: KEYS-01 + XF-07, XF-08, DUP-01 + XF-11
+- [ ] Phase 4 (S4): Hardening
+  - [ ] Edge-case matrix (malformed bibtex, CRLF, unicode, big input, permissions, pipes)
+  - [ ] Full-corpus G-PARITY green; sweep for TODOs/dead code
+- [ ] Phase 5 (S5): Independent adversarial review (§8)
+- [ ] Phase 6 (S6): Ship — release builds per §10.1, artifact verification, gates green
+- [ ] Phase 7 (S7): Upstream sync (recurring)
