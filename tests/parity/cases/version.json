@@ -1,0 +1,16 @@
+{
+  "name": "version",
+  "args": [
+    "--version"
+  ],
+  "stdin": null,
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "v1.15.1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

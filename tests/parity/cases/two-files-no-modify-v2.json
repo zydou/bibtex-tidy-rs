@@ -1,0 +1,26 @@
+{
+  "name": "two-files-no-modify-v2",
+  "args": [
+    "--v2",
+    "a.bib",
+    "b.bib"
+  ],
+  "stdin": null,
+  "files": {
+    "a.bib": "@article{a,\n  TITLE = {Hello World},\n  author = {Smith, John},\n  year = {2020}\n}\n",
+    "b.bib": "@article{a,\n  TITLE = {Hello World},\n  author = {Smith, John},\n  year = {2020}\n}\n"
+  },
+  "env": {
+    "PRE_COMMIT": "1"
+  },
+  "match": "full",
+  "expected": {
+    "stdout": "",
+    "stderr": "Only one input file permitted unless using --modify/-m\n",
+    "exit": 1,
+    "files": {
+      "a.bib": "@article{a,\n  TITLE = {Hello World},\n  author = {Smith, John},\n  year = {2020}\n}\n",
+      "b.bib": "@article{a,\n  TITLE = {Hello World},\n  author = {Smith, John},\n  year = {2020}\n}\n"
+    }
+  }
+}

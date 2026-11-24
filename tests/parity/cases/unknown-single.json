@@ -1,0 +1,16 @@
+{
+  "name": "unknown-single",
+  "args": [
+    "--bogus"
+  ],
+  "stdin": "@article{a,\n  TITLE = {Hello World},\n  author = {Smith, John},\n  year = {2020}\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "",
+    "stderr": "Unknown option: --bogus\nTry 'bibtex-tidy --help for more information.\n",
+    "exit": 1,
+    "files": {}
+  }
+}

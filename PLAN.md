@@ -8,9 +8,15 @@ Rust port of [FlamingTempura/bibtex-tidy](https://github.com/FlamingTempura/bibt
 - Sync target: none
 - Oracle binary: `upstream/bin/bibtex-tidy` (committed build artifact at the pin commit; sha256 `ccd2cb1233d3c127b408f3b2d19ab30e5535eb1e933ad43a6437af61c5697373`; run with `node` v24.22.2; reports `v1.15.1`)
 - Working end-to-end: none yet (skeleton pending)
-- Current stage: S0 Recon
-- Next: S1 — build `tests/parity/` oracle harness and self-check against the original
+- Current stage: S2 Skeleton
+- Next: S2 walking skeleton — arg parsing + parser/formatter + `tidy()` + always-on transforms
 - Blockers: none
+
+### Parity gating note
+
+- The full parity corpus (`tests/parity/cases/*.json`, fixtures captured from the original) includes transform-heavy cases that stay red until the S3 transform slices land. To honor INV-MAIN (main always green), the Rust check test `tests/parity_check.rs` is `#[ignore]`d so G-TEST stays green; G-PARITY runs explicitly via `cargo test --test parity_check -- --ignored` at slice boundaries and becomes a required CI check once the corpus is fully green (S4).
+- S1 self-check (`python3 tests/parity/capture.py verify`) replays the original against the stored fixtures: **28/28 green**, confirming fixtures are deterministic and normalization is sound.
+- File-mode cases set `PRE_COMMIT=1` (the original's own switch for "no stdin"); without it a piped stdin makes the parser treat trailing filenames as option values (see `define_cli_cases.py`).
 
 ## Scope decisions
 
@@ -162,12 +168,12 @@ Slice references the phase unit that ports it.
   - [x] Initialize & pin `upstream/` submodule @ `e9795a7`
   - [x] Fix `origin` remote to port repo (`zydou/bibtex-tidy-rs`)
   - [x] Record oracle provenance
-  - [ ] Initial commit (template + submodule pin + PLAN.md)
+  - [x] Initial commit (template + submodule pin + PLAN.md)
 - [ ] Phase 1 (S1): Oracle harness
-  - [ ] Case format + capture mode (run original) + check mode (run Rust)
-  - [ ] Capture CLI-surface fixtures (version/help/stdin/unknown/mod/out/backup/quiet/v2)
-  - [ ] Convert upstream `test/spec/*.yaml` corpus into parity cases (input+options→output+warnings)
-  - [ ] Self-check: check-mode vs original = 100% green before porting
+  - [x] Case format + capture mode (run original) + check mode (run Rust)
+  - [x] Capture CLI-surface fixtures (version/help/stdin/unknown/mod/out/backup/quiet/v2) — 28 cases
+  - [ ] Convert upstream `test/spec/*.yaml` corpus into parity cases (input+options→output+warnings) — deferred to S3; each transform slice captures its spec cases as it lands
+  - [x] Self-check: check-mode vs original = 100% green before porting (`capture.py verify`, 28/28)
 - [ ] Phase 2 (S2): Walking skeleton
   - [ ] Cargo layout, unified error type, exit-code mapping
   - [ ] Arg parsing (`argsParser` + `optionDefinitions` + `argsToOptions`) — OPT-*, CLI-01..10

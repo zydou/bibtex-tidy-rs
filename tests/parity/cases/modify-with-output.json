@@ -1,0 +1,25 @@
+{
+  "name": "modify-with-output",
+  "args": [
+    "-m",
+    "-o",
+    "out.bib",
+    "in.bib"
+  ],
+  "stdin": null,
+  "files": {
+    "in.bib": "@article{a,\n  TITLE = {Hello World},\n  author = {Smith, John},\n  year = {2020}\n}\n"
+  },
+  "env": {
+    "PRE_COMMIT": "1"
+  },
+  "match": "exit_stdout_files",
+  "expected": {
+    "stdout": "Tidying...\n",
+    "stderr": "node:internal/fs/promises:1345\n  return new FileHandle(await PromisePrototypeThen(\n                        ^\n\nError: ENOENT: no such file or directory, open 'out.bib'\n    at async open (node:internal/fs/promises:1345:25)\n    at async readFile (node:internal/fs/promises:2003:14)\n    at async tidyInputFiles (file:///home/linuxbrew/Projects/bibtex-tidy/upstream/bin/bibtex-tidy:7449:27)\n    at async start (file:///home/linuxbrew/Projects/bibtex-tidy/upstream/bin/bibtex-tidy:7411:5) {\n  errno: -2,\n  code: 'ENOENT',\n  syscall: 'open',\n  path: 'out.bib'\n}\n\nNode.js v24.22.2\n",
+    "exit": 1,
+    "files": {
+      "in.bib": "@article{a,\n  TITLE = {Hello World},\n  author = {Smith, John},\n  year = {2020}\n}\n"
+    }
+  }
+}

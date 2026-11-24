@@ -1,0 +1,23 @@
+{
+  "name": "deprecated-stdio",
+  "args": [
+    "in.bib"
+  ],
+  "stdin": null,
+  "files": {
+    "in.bib": "@article{a,\n  TITLE = {Hello World},\n  author = {Smith, John},\n  year = {2020}\n}\n"
+  },
+  "env": {
+    "PRE_COMMIT": "1"
+  },
+  "match": "full",
+  "expected": {
+    "stdout": "Tidying...\nDone. Successfully tidied 1 entries.\n",
+    "stderr": "NOTICE: In v2 you will need to specify --modify/-m to modify the input file.\n",
+    "exit": 0,
+    "files": {
+      "in.bib": "@article{a,\n  title         = {Hello World},\n  author        = {Smith, John},\n  year          = {2020}\n}\n",
+      "in.bib.original": "@article{a,\n  TITLE = {Hello World},\n  author = {Smith, John},\n  year = {2020}\n}\n"
+    }
+  }
+}

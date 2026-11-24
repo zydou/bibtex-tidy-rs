@@ -1,0 +1,16 @@
+{
+  "name": "stdin-quiet-stdout",
+  "args": [
+    "--quiet"
+  ],
+  "stdin": "@article{a,\n  TITLE = {Hello World},\n  author = {Smith, John},\n  year = {2020}\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@article{a,\n  title         = {Hello World},\n  author        = {Smith, John},\n  year          = {2020}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

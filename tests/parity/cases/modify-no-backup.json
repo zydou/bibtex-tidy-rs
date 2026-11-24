@@ -1,0 +1,24 @@
+{
+  "name": "modify-no-backup",
+  "args": [
+    "-m",
+    "--no-backup",
+    "in.bib"
+  ],
+  "stdin": null,
+  "files": {
+    "in.bib": "@article{a,\n  TITLE = {Hello World},\n  author = {Smith, John},\n  year = {2020}\n}\n"
+  },
+  "env": {
+    "PRE_COMMIT": "1"
+  },
+  "match": "full",
+  "expected": {
+    "stdout": "Tidying...\nDone. Successfully tidied 1 entries.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "in.bib": "@article{a,\n  title         = {Hello World},\n  author        = {Smith, John},\n  year          = {2020}\n}\n"
+    }
+  }
+}

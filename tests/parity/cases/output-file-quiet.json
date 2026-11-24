@@ -1,0 +1,20 @@
+{
+  "name": "output-file-quiet",
+  "args": [
+    "-o",
+    "out.bib",
+    "--quiet"
+  ],
+  "stdin": "@article{a,\n  TITLE = {Hello World},\n  author = {Smith, John},\n  year = {2020}\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "out.bib": "@article{a,\n  title         = {Hello World},\n  author        = {Smith, John},\n  year          = {2020}\n}\n"
+    }
+  }
+}

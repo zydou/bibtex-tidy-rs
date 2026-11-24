@@ -1,0 +1,21 @@
+{
+  "name": "dash-with-file",
+  "args": [
+    "-",
+    "in.bib"
+  ],
+  "stdin": null,
+  "files": {
+    "in.bib": "@article{a,\n  TITLE = {Hello World},\n  author = {Smith, John},\n  year = {2020}\n}\n"
+  },
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "",
+    "stderr": "Interpreting \"-\" as stdin. NOTICE: as of v1.10.0 \"-\" can be omitted and will be invalid in v2. Stdin is read when no input file is specified.\nInput files cannot be specified with \"-\"\n",
+    "exit": 1,
+    "files": {
+      "in.bib": "@article{a,\n  TITLE = {Hello World},\n  author = {Smith, John},\n  year = {2020}\n}\n"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "dash-stdin",
+  "args": [
+    "-"
+  ],
+  "stdin": "@article{a,\n  TITLE = {Hello World},\n  author = {Smith, John},\n  year = {2020}\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@article{a,\n  title         = {Hello World},\n  author        = {Smith, John},\n  year          = {2020}\n}\n",
+    "stderr": "Interpreting \"-\" as stdin. NOTICE: as of v1.10.0 \"-\" can be omitted and will be invalid in v2. Stdin is read when no input file is specified.\n",
+    "exit": 0,
+    "files": {}
+  }
+}
