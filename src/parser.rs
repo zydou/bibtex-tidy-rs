@@ -483,8 +483,12 @@ pub fn parse(input: &str) -> Result<Root, SyntaxError> {
                     let frame = stack.pop().expect("non-empty");
                     attach(&mut stack, frame);
                 } else if c == ',' {
-                    let frame = stack.pop().expect("non-empty");
-                    attach(&mut stack, frame);
+                    // A comma after a literal ends the whole field: attach the literal to
+                    // its field, then the field to its entry, and begin a new field.
+                    let literal = stack.pop().expect("non-empty");
+                    attach(&mut stack, literal);
+                    let field = stack.pop().expect("non-empty");
+                    attach(&mut stack, field);
                     stack.push(Frame::Field {
                         field: Field::new("", ""),
                         mode: FieldMode::Name,
@@ -508,7 +512,14 @@ pub fn parse(input: &str) -> Result<Root, SyntaxError> {
                     Some(Frame::Braced { depth, .. }) | Some(Frame::Quoted { depth, .. }) => *depth,
                     _ => unreachable!(),
                 };
-                if (is_braced && c == '}') || (!is_braced && c == '"' && depth == 0) {
+                // A value closes only on its own terminator at brace depth 0; nested
+                // braces are balanced and folded into the LaTeX subtree.
+                let closes = if is_braced {
+                    c == '}' && depth == 0
+                } else {
+                    c == '"' && depth == 0
+                };
+                if closes {
                     // Value complete: parse the accumulated LaTeX and attach.
                     let latex_src = match stack.last_mut() {
                         Some(Frame::Braced { latex, .. }) | Some(Frame::Quoted { latex, .. }) => {

@@ -6,12 +6,17 @@
 //! [`crate::pipeline`]; the transforms here cover the subset applied by the default
 //! configuration (S2 skeleton) plus the option-parameterized formatting stages.
 
-use crate::ast::{BibtexNode, Block, BlockInner, Entry, Field, Root, Value, Visitors, walk};
+use crate::ast::{
+    BibtexNode, Block, BlockInner, Ctx, Entry, Field, Root, Value, Visitors, walk, walk_entries,
+};
 use crate::latex::{self, Block as LatexBlock, LatexNode};
 use crate::types::{TransformFn, TransformResult, Warning};
 use crate::unicode::{core_special_character, special_character};
 use crate::utils::{unwrap_text, wrap_text};
-use crate::value_nodes::{render_value_node, replace_value_node_text};
+use crate::value_nodes::{
+    enclose_latex_in_curly, render_field_value, render_value_node, replace_value_node_text,
+};
+use std::collections::HashSet;
 
 const MAX_ASCII: u32 = 0x7f;
 const VERBATIM_FIELDS: [&str; 5] = ["url", "file", "pdf", "doi", "doiurl"];
@@ -512,4 +517,605 @@ fn push_str(frags: &mut Vec<LatexNode>, s: &str) {
         return;
     }
     frags.push(LatexNode::Text(s.to_string()));
+}
+
+// ---------------------------------------------------------------------------
+// Option-gated value transforms (S3)
+// ---------------------------------------------------------------------------
+
+/// The 3-letter month abbreviations, in calendar order. Used by month sorting and
+/// abbreviation. Port of the `monthAliases`/`MONTH_MACROS` tables.
+pub const MONTHS: [&str; 12] = [
+    "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec",
+];
+
+/// All values recognized as a given month (including the numeric BibTeX forms).
+const MONTH_ALIASES: [(&str, &[&str]); 12] = [
+    ("jan", &["1", "jan", "january"]),
+    ("feb", &["2", "feb", "february"]),
+    ("mar", &["3", "mar", "march"]),
+    ("apr", &["4", "apr", "april"]),
+    ("may", &["5", "may"]),
+    ("jun", &["6", "jun", "june"]),
+    ("jul", &["7", "jul", "july"]),
+    ("aug", &["8", "aug", "august"]),
+    ("sep", &["9", "sep", "september"]),
+    ("oct", &["10", "oct", "october"]),
+    ("nov", &["11", "nov", "november"]),
+    ("dec", &["12", "dec", "december"]),
+];
+
+/// The month abbreviation for a recognized month value (matched case-insensitively).
+fn month_abbr(value: &str) -> Option<&'static str> {
+    let v = value.to_lowercase();
+    MONTH_ALIASES
+        .iter()
+        .find(|(_, aliases)| aliases.contains(&v.as_str()))
+        .map(|(abbr, _)| *abbr)
+}
+
+/// Convert every month value to its 3-letter abbreviation. Port of `createMonthsTransform`.
+pub fn months() -> TransformFn {
+    Box::new(|ast| {
+        let visitors = Visitors {
+            field: Some(Box::new(|field, _ctx| {
+                if field.name.to_lowercase() != "month" {
+                    return Some(vec![field]);
+                }
+                let new_values: Vec<Value> = field
+                    .values
+                    .iter()
+                    .map(|v| match v {
+                        Value::Literal(s) => match month_abbr(s) {
+                            Some(abbr) => Value::Literal(abbr.to_string()),
+                            None => Value::Literal(s.clone()),
+                        },
+                        Value::Braced(_) | Value::Quoted(_) => {
+                            match month_abbr(&render_value_node(v)) {
+                                Some(abbr) => Value::Literal(abbr.to_string()),
+                                None => v.clone(),
+                            }
+                        }
+                    })
+                    .collect();
+                Some(vec![Field {
+                    values: new_values,
+                    ..field
+                }])
+            })),
+            ..Default::default()
+        };
+        TransformResult {
+            ast: walk(ast, &visitors),
+            warnings: vec![],
+        }
+    })
+}
+
+/// Convert literal and quoted values to braced ones, leaving `month` values that are
+/// already 3-letter abbreviations alone. Port of `createPreferCurlyTransform`.
+pub fn prefer_curly() -> TransformFn {
+    Box::new(|ast| {
+        let visitors = Visitors {
+            concat: Some(Box::new(|field, ctx| {
+                let values = field.values.clone();
+                let mut result = Vec::with_capacity(values.len());
+                for value in values {
+                    result.extend(prefer_curly_value(value, field, ctx));
+                }
+                Some(result)
+            })),
+            braced: Some(Box::new(|block, ctx| match ctx.current_field() {
+                Some(field) if is_month_abbrev(field) => Some(vec![Value::Braced(block)]),
+                _ => None,
+            })),
+            quoted: Some(Box::new(|block, ctx| match ctx.current_field() {
+                Some(field) if is_month_abbrev(field) => Some(vec![Value::Quoted(block)]),
+                _ => Some(vec![Value::Braced(block)]),
+            })),
+            ..Default::default()
+        };
+        TransformResult {
+            ast: walk(ast, &visitors),
+            warnings: vec![],
+        }
+    })
+}
+
+fn prefer_curly_value(value: Value, field: &Field, _ctx: &Ctx) -> Vec<Value> {
+    match value {
+        Value::Literal(text) => {
+            if is_month_abbrev(field) {
+                vec![Value::Literal(text)]
+            } else {
+                vec![Value::Braced(latex::parse(&text))]
+            }
+        }
+        other => vec![other],
+    }
+}
+
+/// A `month` field whose rendered value is already a 3-letter abbreviation.
+fn is_month_abbrev(field: &Field) -> bool {
+    field.name.to_lowercase() == "month" && MONTHS.contains(&render_field_value(field).as_str())
+}
+
+/// Convert integer values (`1`, `23`, …) to literal (unbraced) values. Depends on
+/// `prefer-curly` so that quoted numbers are normalized first. Port of
+/// `createPreferNumericTransform`.
+pub fn prefer_numeric() -> TransformFn {
+    Box::new(|ast| {
+        let visitors = Visitors {
+            braced: Some(Box::new(|block, _ctx| {
+                prefer_numeric_visit(&Value::Braced(block))
+            })),
+            quoted: Some(Box::new(|block, _ctx| {
+                prefer_numeric_visit(&Value::Quoted(block))
+            })),
+            ..Default::default()
+        };
+        TransformResult {
+            ast: walk(ast, &visitors),
+            warnings: vec![],
+        }
+    })
+}
+
+fn prefer_numeric_visit(value: &Value) -> Option<Vec<Value>> {
+    let rendered = render_value_node(value);
+    if is_positive_integer(&rendered) {
+        Some(vec![Value::Literal(rendered)])
+    } else {
+        None
+    }
+}
+
+/// Matches `/^[1-9][0-9]*$/`.
+fn is_positive_integer(s: &str) -> bool {
+    let mut chars = s.chars();
+    match chars.next() {
+        Some(c) if ('1'..='9').contains(&c) => {}
+        _ => return false,
+    }
+    chars.all(|c| c.is_ascii_digit())
+}
+
+/// Remove curly-brace grouping (unless part of a command) from the given fields. Port of
+/// `createRemoveBracesTransform`.
+pub fn remove_braces(fields: &[String]) -> TransformFn {
+    let set: HashSet<String> = fields.iter().map(|f| f.to_lowercase()).collect();
+    Box::new(move |ast| {
+        let visitors = Visitors {
+            braced: Some(Box::new(|block, ctx| match ctx.current_field() {
+                Some(field) if set.contains(&field.name.to_lowercase()) => {
+                    Some(vec![Value::Braced(latex::flatten(&block))])
+                }
+                _ => None,
+            })),
+            ..Default::default()
+        };
+        TransformResult {
+            ast: walk(ast, &visitors),
+            warnings: vec![],
+        }
+    })
+}
+
+/// Enclose the given fields' values in an extra set of braces. Depends on `prefer-curly`.
+/// Port of `createEncloseBracesTransform`.
+pub fn enclose_braces(fields: &[String]) -> TransformFn {
+    let set: HashSet<String> = fields.iter().map(|f| f.to_lowercase()).collect();
+    Box::new(move |ast| {
+        let visitors = Visitors {
+            braced: Some(Box::new(|block, ctx| match ctx.current_field() {
+                Some(field) if set.contains(&field.name.to_lowercase()) => {
+                    Some(vec![Value::Braced(enclose_latex_in_curly(&block))])
+                }
+                _ => None,
+            })),
+            ..Default::default()
+        };
+        TransformResult {
+            ast: walk(ast, &visitors),
+            warnings: vec![],
+        }
+    })
+}
+
+/// Remove one level of enclosing braces (`{{x}}` -> `{x}`) from every braced value. Port of
+/// `createStripEnclosingBracesTransform`.
+pub fn remove_enclosing_braces() -> TransformFn {
+    Box::new(|ast| {
+        let visitors = Visitors {
+            braced: Some(Box::new(|block, _ctx| {
+                let rendered = latex::stringify(&block);
+                Some(
+                    strip_enclosing_braces(&rendered)
+                        .map(|inner| vec![Value::Braced(latex::parse(&inner))])
+                        .unwrap_or_else(|| vec![Value::Braced(block)]),
+                )
+            })),
+            ..Default::default()
+        };
+        TransformResult {
+            ast: walk(ast, &visitors),
+            warnings: vec![],
+        }
+    })
+}
+
+/// Matches `/^\{([^{}]*)\}$/`: a single outer group with no nested braces inside.
+fn strip_enclosing_braces(s: &str) -> Option<String> {
+    let chars: Vec<char> = s.chars().collect();
+    if chars.len() < 2 || chars[0] != '{' || chars[chars.len() - 1] != '}' {
+        return None;
+    }
+    let inner = &chars[1..chars.len() - 1];
+    if inner.iter().any(|c| *c == '{' || *c == '}') {
+        None
+    } else {
+        Some(inner.iter().collect())
+    }
+}
+
+/// Remove BibTeX comments and `@comment` blocks. Port of `createStripCommentsTransform`.
+pub fn remove_comments() -> TransformFn {
+    Box::new(|ast| {
+        let visitors = Visitors {
+            text: Some(Box::new(|text, _ctx| {
+                if is_bibtex_comment_text(&text.text) {
+                    Some(vec![])
+                } else {
+                    Some(vec![BibtexNode::Text(text)])
+                }
+            })),
+            block: Some(Box::new(|block, _ctx| {
+                if matches!(block.inner, Some(BlockInner::Comment { .. })) {
+                    Some(vec![])
+                } else {
+                    Some(vec![block])
+                }
+            })),
+            ..Default::default()
+        };
+        TransformResult {
+            ast: walk(ast, &visitors),
+            warnings: vec![],
+        }
+    })
+}
+
+/// A text node every one of whose lines starts with `%`.
+fn is_bibtex_comment_text(text: &str) -> bool {
+    text.trim()
+        .lines()
+        .all(|line| line.trim_start().starts_with('%'))
+}
+
+/// Remove fields whose rendered value is empty. Port of `createRemoveEmptyFieldsTransform`.
+pub fn remove_empty_fields() -> TransformFn {
+    Box::new(|ast| {
+        let visitors = Visitors {
+            field: Some(Box::new(|field, _ctx| {
+                let is_empty = field
+                    .values
+                    .iter()
+                    .all(|v| render_value_node(v).trim().is_empty());
+                if is_empty {
+                    Some(vec![])
+                } else {
+                    Some(vec![field])
+                }
+            })),
+            ..Default::default()
+        };
+        TransformResult {
+            ast: walk(ast, &visitors),
+            warnings: vec![],
+        }
+    })
+}
+
+/// Insert an empty line between each top-level item. Port of `createBlankLinesTransform`.
+pub fn blank_lines() -> TransformFn {
+    Box::new(|ast| {
+        // The original inserts a blank line before every child whose predecessor is not a
+        // "comment-like" node (a free-text node or a `@comment` block).
+        let is_separator = |node: &BibtexNode| match node {
+            BibtexNode::Text(_) => true,
+            BibtexNode::Block(b) => matches!(b.inner, Some(BlockInner::Comment { .. })),
+        };
+        let children = ast
+            .children
+            .iter()
+            .enumerate()
+            .map(|(i, child)| {
+                if i > 0 && !is_separator(&ast.children[i - 1]) {
+                    set_top_level_prefix(child.clone(), "\n\n")
+                } else {
+                    child.clone()
+                }
+            })
+            .collect();
+        TransformResult {
+            ast: Root { children },
+            warnings: vec![],
+        }
+    })
+}
+
+/// Set only a top-level node's whitespace prefix, leaving its subtree (e.g. entry field
+/// indents) untouched. The original's `child.with({ whitespacePrefix })` semantics.
+fn set_top_level_prefix(node: BibtexNode, prefix: &str) -> BibtexNode {
+    match node {
+        BibtexNode::Text(mut t) => {
+            t.whitespace_prefix = prefix.to_string();
+            BibtexNode::Text(t)
+        }
+        BibtexNode::Block(mut b) => {
+            b.whitespace_prefix = prefix.to_string();
+            BibtexNode::Block(b)
+        }
+    }
+}
+
+/// Percent-encode literal underscores in `url` values (`_` and `\_` -> `%5F`). Port of
+/// `createEncodeUrlsTransform`.
+pub fn encode_urls() -> TransformFn {
+    Box::new(|ast| {
+        let visitors = Visitors {
+            braced: Some(Box::new(|block, ctx| match ctx.current_field() {
+                Some(field) if field.name.to_lowercase() == "url" => {
+                    let rendered = latex::stringify(&block);
+                    let encoded = encode_underscores(&rendered);
+                    Some(vec![Value::Braced(latex::parse(&encoded))])
+                }
+                _ => None,
+            })),
+            quoted: Some(Box::new(|block, ctx| match ctx.current_field() {
+                Some(field) if field.name.to_lowercase() == "url" => {
+                    let rendered = latex::stringify(&block);
+                    let encoded = encode_underscores(&rendered);
+                    Some(vec![Value::Quoted(latex::parse(&encoded))])
+                }
+                _ => None,
+            })),
+            ..Default::default()
+        };
+        TransformResult {
+            ast: walk(ast, &visitors),
+            warnings: vec![],
+        }
+    })
+}
+
+/// Replace every (optionally backslash-escaped) `_` with `\%5F`. Matches `/\\?_/g`.
+fn encode_underscores(s: &str) -> String {
+    let chars: Vec<char> = s.chars().collect();
+    let mut out = String::new();
+    let mut i = 0;
+    while i < chars.len() {
+        if chars[i] == '_' {
+            out.push_str("\\%5F");
+            i += 1;
+        } else if chars[i] == '\\' && i + 1 < chars.len() && chars[i + 1] == '_' {
+            out.push_str("\\%5F");
+            i += 2;
+        } else {
+            out.push(chars[i]);
+            i += 1;
+        }
+    }
+    out
+}
+
+/// Sort the fields of each entry by a preferred field order (case-insensitive); fields not
+/// in the order keep their relative positions after the ordered ones. Port of
+/// `createSortFieldsTransform`.
+pub fn sort_fields(field_order: &[String]) -> TransformFn {
+    let order: Vec<String> = field_order.iter().map(|f| f.to_lowercase()).collect();
+    Box::new(move |ast| TransformResult {
+        ast: walk_entries(
+            ast,
+            Box::new(|entry, _ctx| {
+                let mut fields = entry.fields.clone();
+                fields.sort_by(|a, b| {
+                    let ia = order.iter().position(|f| *f == a.name.to_lowercase());
+                    let ib = order.iter().position(|f| *f == b.name.to_lowercase());
+                    match (ia, ib) {
+                        (None, None) => std::cmp::Ordering::Equal,
+                        (None, Some(_)) => std::cmp::Ordering::Greater,
+                        (Some(_), None) => std::cmp::Ordering::Less,
+                        (Some(x), Some(y)) => x.cmp(&y),
+                    }
+                });
+                Some(Entry {
+                    fields,
+                    ..entry.clone()
+                })
+            }),
+        ),
+        warnings: vec![],
+    })
+}
+
+/// Sort top-level entries by the given keys. Port of `createSortEntriesTransform`.
+///
+/// Each sort key may be prefixed with `-` for descending order. Keys `key`, `type`,
+/// `month`, and `special` have dedicated semantics; any other key reads that field's
+/// rendered value. Comments, `@string`/`@preamble` blocks, and BibLaTeX `@set`/`@xdata`
+/// entries inherit the sort index of the entry they precede.
+pub fn sort_entries(sort: &[String]) -> TransformFn {
+    let sort: Vec<String> = sort.to_vec();
+    Box::new(move |ast| {
+        let sorts_special = sort.iter().any(|k| k == "special");
+        // A sort index (key -> value) for every sortable top-level item; `None` for items
+        // that stay put or inherit another entry's index.
+        let mut indexes: Vec<Option<SortIndex>> = vec![None; ast.children.len()];
+        let mut fixed_text: HashSet<usize> = HashSet::new();
+        let mut preceding_meta: Vec<usize> = Vec::new();
+
+        for (i, item) in ast.children.iter().enumerate() {
+            match item {
+                // BibTeX comments travel with the entry that follows them.
+                BibtexNode::Text(t) if is_bibtex_comment_text(&t.text) => {
+                    preceding_meta.push(i);
+                }
+                // Non-entry blocks travel with the following entry unless sorting specials.
+                BibtexNode::Block(b)
+                    if !matches!(b.inner, Some(BlockInner::Entry(_))) && !sorts_special =>
+                {
+                    preceding_meta.push(i);
+                }
+                // Other free text stays in place.
+                BibtexNode::Text(_) => {
+                    fixed_text.insert(i);
+                }
+                BibtexNode::Block(_) => {
+                    let index = build_sort_index(item, &sort);
+                    for meta in preceding_meta.drain(..) {
+                        indexes[meta] = Some(index.clone());
+                    }
+                    indexes[i] = Some(index);
+                }
+            }
+        }
+
+        // Sortable items are every non-fixed-text child, in original order.
+        let mut sortable: Vec<usize> = (0..ast.children.len())
+            .filter(|i| !fixed_text.contains(i))
+            .collect();
+
+        // Apply keys from last to first; Rust's stable sort makes earlier keys dominant.
+        for prefixed_key in sort.iter().rev() {
+            let (desc, key) = match prefixed_key.strip_prefix('-') {
+                Some(rest) => (true, rest.to_string()),
+                None => (false, prefixed_key.clone()),
+            };
+            sortable.sort_by(|&a, &b| {
+                let mut ia = sort_value_for(&indexes, a, &key);
+                let mut ib = sort_value_for(&indexes, b, &key);
+                if desc {
+                    std::mem::swap(&mut ia, &mut ib);
+                }
+                // Proxy for the original's `localeCompare` over lowercased values.
+                ia.cmp(&ib)
+            });
+        }
+
+        // Rebuild the children: fixed text stays put, everything else takes sorted order.
+        let mut sorted_iter = sortable.into_iter();
+        let children: Vec<BibtexNode> = ast
+            .children
+            .iter()
+            .enumerate()
+            .map(|(i, item)| {
+                if fixed_text.contains(&i) {
+                    item.clone()
+                } else {
+                    let src = sorted_iter.next().unwrap_or(i);
+                    ast.children[src].clone()
+                }
+            })
+            .collect();
+        TransformResult {
+            ast: Root { children },
+            warnings: vec![],
+        }
+    })
+}
+
+type SortIndex = Vec<(String, SortValue)>;
+
+#[derive(Clone)]
+enum SortValue {
+    Str(String),
+    Num(usize),
+}
+
+/// Sentinel used for items with no value for a key so they sort last.
+const SORT_MISSING: &str = "\u{fff0}";
+
+fn sort_value_for(indexes: &[Option<SortIndex>], i: usize, key: &str) -> String {
+    let index = match &indexes[i] {
+        Some(index) => index,
+        None => return SORT_MISSING.to_string(),
+    };
+    match index.iter().find(|(k, _)| k == key) {
+        Some((_, SortValue::Str(s))) => s.clone(),
+        // Numbers sort as zero-padded strings (e.g. months) so they order numerically.
+        Some((_, SortValue::Num(n))) => format!("{n:0>50}"),
+        None => SORT_MISSING.to_string(),
+    }
+}
+
+fn build_sort_index(item: &BibtexNode, sort: &[String]) -> SortIndex {
+    let mut index = Vec::new();
+    for raw_key in sort {
+        let key = raw_key.strip_prefix('-').unwrap_or(raw_key);
+        let val = match key {
+            "key" => match entry_key(item) {
+                Some(k) => SortValue::Str(k.to_lowercase()),
+                None => continue,
+            },
+            "type" => SortValue::Str(block_command(item).to_lowercase()),
+            "month" => {
+                let v = entry_field(item, "month")
+                    .map(render_field_value)
+                    .unwrap_or_default();
+                match MONTHS.iter().position(|m| *m == v) {
+                    Some(i) => SortValue::Num(i),
+                    None => SortValue::Str(String::new()),
+                }
+            }
+            "special" => {
+                let is_special = matches!(
+                    item,
+                    BibtexNode::Block(b) if matches!(
+                        b.command.to_lowercase().as_str(),
+                        "string" | "preamble" | "set" | "xdata"
+                    )
+                );
+                SortValue::Num(if is_special { 0 } else { 1 })
+            }
+            _ => {
+                let v = entry_field(item, key)
+                    .map(render_field_value)
+                    .unwrap_or_default();
+                SortValue::Str(v.to_lowercase())
+            }
+        };
+        index.push((key.to_string(), val));
+    }
+    index
+}
+
+fn entry_key(item: &BibtexNode) -> Option<&str> {
+    match item {
+        BibtexNode::Block(b) => match &b.inner {
+            Some(BlockInner::Entry(e)) => e.key.as_deref(),
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
+fn block_command(item: &BibtexNode) -> &str {
+    match item {
+        BibtexNode::Block(b) => &b.command,
+        _ => "",
+    }
+}
+
+fn entry_field<'a>(item: &'a BibtexNode, name: &str) -> Option<&'a Field> {
+    match item {
+        BibtexNode::Block(b) => match &b.inner {
+            Some(BlockInner::Entry(e)) => e
+                .fields
+                .iter()
+                .find(|f| f.name.to_lowercase() == name.to_lowercase()),
+            _ => None,
+        },
+        _ => None,
+    }
 }
