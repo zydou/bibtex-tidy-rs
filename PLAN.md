@@ -8,8 +8,8 @@ Rust port of [FlamingTempura/bibtex-tidy](https://github.com/FlamingTempura/bibt
 - Sync target: none
 - Oracle binary: `upstream/bin/bibtex-tidy` (committed build artifact at the pin commit; sha256 `ccd2cb1233d3c127b408f3b2d19ab30e5535eb1e933ad43a6437af61c5697373`; run with `node` v24.22.2; reports `v1.15.1`)
 - Working end-to-end: stdin→stdout tidy (default path), file modify/output/backup, `--version`/`--help`/unknown-args, `--quiet`, `--v2`, deprecated-stdio notice, `--omit`, plus the option-gated transforms XF-01/03/07/08/11/13/14/15/16/17/19/20/21/22/25 (incl. generateKeys + mergeEntries + the name parser) — all matching the original on the CLI-surface + spec corpus
-- Current stage: S3 Transform & value slices
-- Next: S4 — Hardening (edge-case matrix + full-corpus G-PARITY as a required check)
+- Current stage: S4 Hardening
+- Next: S5 — Independent adversarial review (§8)
 - Blockers: none
 - CI/CD: `release.yml` (authoritative) runs fmt/clippy/audit + the G-PARITY gate in its lint job, and a per-target test+build matrix on all six §10.1 targets; pushes to `main` publish the moving `nightly` release, `v*` tags publish that tag. `main` is branch-protected (require PR + the Release checks, no direct pushes).
 
@@ -192,9 +192,9 @@ Slice references the phase unit that ports it.
   - [x] Simple field transforms: XF-09, XF-10, XF-17, XF-18, XF-19, XF-12, XF-20, XF-21
   - [x] Value transforms: XF-01 ✓, XF-02 ✓, XF-03 ✓, XF-04 ✓, XF-05, XF-13 ✓, XF-14 ✓, XF-15 ✓, XF-16 ✓, XF-22 ✓
   - [x] KEY/DUP: KEYS-01 + XF-07, XF-08, DUP-01 + XF-11
-- [ ] Phase 4 (S4): Hardening
-  - [ ] Edge-case matrix (malformed bibtex, CRLF, unicode, big input, permissions, pipes)
-  - [ ] Full-corpus G-PARITY green; sweep for TODOs/dead code
+- [x] Phase 4 (S4): Hardening
+  - [x] Edge-case matrix (malformed bibtex, CRLF, unicode, big input, permissions, pipes) — a 46-case matrix (`bare-at`/`at-garbage`/unclosed braces+quotes/no-key/no-fields/dup-fields/empty-field/CRLF/BOM/nested braces/concat/string-def/preamble/comment-block/unicode/LaTeX-escape/special-chars/big-input(400 entries)/long-value plus option-gated transforms and I/O errors: missing file, directory input, unwritable output) run against the oracle: **46/46 functional match**. The only stderr differences are the original's Node.js stack traces vs our clean `FATAL!`/OS error text — non-functional per INV-PARITY (exit codes and error-vs-success all match).
+  - [x] Full-corpus G-PARITY green (119/119); sweep for TODOs/dead code clean (only intentional `FIXME(upstream)` fidelity notes remain)
 - [ ] Phase 5 (S5): Independent adversarial review (§8)
 - [ ] Phase 6 (S6): Ship — release builds per §10.1, artifact verification, gates green
 - [ ] Phase 7 (S7): Upstream sync (recurring)
