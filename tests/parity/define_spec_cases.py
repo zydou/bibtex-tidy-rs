@@ -29,11 +29,7 @@ SPEC_DIR = PORT_ROOT / "upstream" / "test" / "spec"
 CASES_DIR = PORT_ROOT / "tests" / "parity" / "cases"
 
 # Transforms not yet ported (S3 in progress). Specs using these are skipped.
-UNPORTED_OPTIONS = {
-    "duplicates",
-    "generateKeys",
-    "merge",
-}
+UNPORTED_OPTIONS: set[str] = set()
 
 
 # Spec option keys whose CLI flag is not the naive kebab-case of the key.

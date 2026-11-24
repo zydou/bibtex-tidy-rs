@@ -1,0 +1,16 @@
+{
+  "name": "spec-duplicate-citations-duplicate-citation-warnings",
+  "args": [
+    "--duplicates=citation"
+  ],
+  "stdin": "@article{a,\n\t\tauthor={Smith, James},\n\t\ttitle=\"  something blah BLAH.\"\n}\n@article{b,\n\t\tauthor={Smith, JA},\n\t\ttitle={Something blah blah}\n}\n@article{c,\n\t\tauthor={J. A. Smith},\n\t\ttitle={Something blah blah}\n}\n@article{d,\n\t\tauthor={James Smith},\n\t\ttitle={Something blah blah}\n}\nIssue #11 - these should not be flagged as duplicates\n@Article{Raku2,\n\ttitle = {Focusing of a vortex carrying beam with Gaussian background by a lens in the presence of spherical aberration and defocusing},\n\tauthor = {R.K.Singh and P.Senthilkumaran and K. Singh},\n\tyear = 2007,\n\tjournal = {Optics and Lasers in Engg.,},\n\tvolume = 45,\n\tpages = {773--782},\n\tdate-added = {2020-05-09 00:08:30 +0530},\n\tdate-modified = {2020-05-09 00:10:16 +0530}\n\t}\n\t\n\t@Article{Raku10,\n\ttitle = {Focusing of a vortex carrying beam with Gaussian background by an apertured system in presence of coma},\n\tauthor = {R.K.Singh and P.Senthilkumaran and K. Singh},\n\tyear = 2008,\n\tjournal = {Opt.Commun.},\n\tvolume = 281,\n\tpages = {923--934},\n\tdate-added = {2020-05-09 00:13:37 +0530},\n\tdate-modified = {2020-05-09 00:14:50 +0530}\n\t}\nIssue #364 - differently numbered entries should not be detected as dupes\n@article{foo1,\n\tauthor={Mr Foo},\n\ttitle={Foo},\n\tnumber={1}\n}\n@article{foo2,\n\tauthor={Mr Foo},\n\ttitle={Foo},\n\tnumber={2}\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@article{a,\n  author        = {Smith, James},\n  title         = \"  something blah BLAH.\"\n}\n@article{b,\n  author        = {Smith, JA},\n  title         = {Something blah blah}\n}\n@article{c,\n  author        = {J. A. Smith},\n  title         = {Something blah blah}\n}\n@article{d,\n  author        = {James Smith},\n  title         = {Something blah blah}\n}\nIssue #11 - these should not be flagged as duplicates\n@article{Raku2,\n  title         = {Focusing of a vortex carrying beam with Gaussian background by a lens in the presence of spherical aberration and defocusing},\n  author        = {R.K.Singh and P.Senthilkumaran and K. Singh},\n  year          = 2007,\n  journal       = {Optics and Lasers in Engg.,},\n  volume        = 45,\n  pages         = {773--782},\n  date-added    = {2020-05-09 00:08:30 +0530},\n  date-modified = {2020-05-09 00:10:16 +0530}\n}\n@article{Raku10,\n  title         = {Focusing of a vortex carrying beam with Gaussian background by an apertured system in presence of coma},\n  author        = {R.K.Singh and P.Senthilkumaran and K. Singh},\n  year          = 2008,\n  journal       = {Opt.Commun.},\n  volume        = 281,\n  pages         = {923--934},\n  date-added    = {2020-05-09 00:13:37 +0530},\n  date-modified = {2020-05-09 00:14:50 +0530}\n}\nIssue #364 - differently numbered entries should not be detected as dupes\n@article{foo1,\n  author        = {Mr Foo},\n  title         = {Foo},\n  number        = {1}\n}\n@article{foo2,\n  author        = {Mr Foo},\n  title         = {Foo},\n  number        = {2}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

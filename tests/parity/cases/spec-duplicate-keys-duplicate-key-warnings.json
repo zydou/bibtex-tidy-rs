@@ -1,0 +1,16 @@
+{
+  "name": "spec-duplicate-keys-duplicate-key-warnings",
+  "args": [
+    "--duplicates=key"
+  ],
+  "stdin": "@article{foo,\n\ttitle={foo}\n}\n@article{foo,\n\ttitle={foo}\n}\n@article{bar,\n\ttitle={bar}\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@article{foo,\n  title         = {foo}\n}\n@article{foo,\n  title         = {foo}\n}\n@article{bar,\n  title         = {bar}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

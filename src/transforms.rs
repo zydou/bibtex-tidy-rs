@@ -1145,6 +1145,34 @@ fn unescape(value: &str, quoted: bool, table: &[(char, String)]) -> String {
     result
 }
 
+/// Replace every entry's citation key with one generated from a JabRef-style template.
+/// Port of `createGenerateKeysTransform`. Entries whose generated key is empty keep their
+/// existing key.
+pub fn generate_keys(template: String) -> TransformFn {
+    Box::new(move |ast| {
+        let entries = crate::generate_keys::get_entries(&ast);
+        let new_keys = crate::generate_keys::generate_keys(&entries, &template);
+        let mut key_iter = new_keys.into_iter();
+        let children = ast
+            .children
+            .into_iter()
+            .map(|mut node| {
+                if let BibtexNode::Block(ref mut block) = node
+                    && let Some(BlockInner::Entry(ref mut entry)) = block.inner
+                    && let Some(Some(new_key)) = key_iter.next()
+                {
+                    entry.key = Some(new_key);
+                }
+                node
+            })
+            .collect();
+        TransformResult {
+            ast: Root { children },
+            warnings: vec![],
+        }
+    })
+}
+
 /// Sort the fields of each entry by a preferred field order (case-insensitive); fields not
 /// in the order keep their relative positions after the ordered ones. Port of
 /// `createSortFieldsTransform`.
