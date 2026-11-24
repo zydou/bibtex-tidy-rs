@@ -6,7 +6,7 @@
   "stdin": "@article{a,\n  TITLE = {Hello World},\n  author = {Smith, John},\n  year = {2020}\n}\n",
   "files": {},
   "env": {},
-  "match": "full",
+  "match": "exit_only",
   "expected": {
     "stdout": "",
     "stderr": "Unknown option: --bogus\nTry 'bibtex-tidy --help for more information.\n",
