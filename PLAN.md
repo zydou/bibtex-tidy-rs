@@ -8,8 +8,8 @@ Rust port of [FlamingTempura/bibtex-tidy](https://github.com/FlamingTempura/bibt
 - Sync target: none
 - Oracle binary: `upstream/bin/bibtex-tidy` (committed build artifact at the pin commit; sha256 `ccd2cb1233d3c127b408f3b2d19ab30e5535eb1e933ad43a6437af61c5697373`; run with `node` v24.22.2; reports `v1.15.1`)
 - Working end-to-end: stdin→stdout tidy (default path), file modify/output/backup, `--version`/`--help`/unknown-args, `--quiet`, `--v2`, deprecated-stdio notice, `--omit`, plus the option-gated transforms XF-01/03/07/08/11/13/14/15/16/17/19/20/21/22/25 (incl. generateKeys + mergeEntries + the name parser) — all matching the original on the CLI-surface + spec corpus
-- Current stage: S5 Review
-- Next: S6 — Ship (release builds per §10.1, artifact verification, gates green)
+- Current stage: S6 Ship (complete — initial port delivered)
+- Next: S7 — Upstream sync (recurring maintenance, not part of the initial definition of done)
 - Blockers: none
 - CI/CD: `release.yml` (authoritative) runs fmt/clippy/audit + the G-PARITY gate in its lint job, and a per-target test+build matrix on all six §10.1 targets; pushes to `main` publish the moving `nightly` release, `v*` tags publish that tag. `main` is branch-protected (require PR + the Release checks, no direct pushes).
 
@@ -207,5 +207,7 @@ Slice references the phase unit that ports it.
   - [x] `--sort-properties` split into a no-op key (upstream pipeline reads only `sortFields`) — matches oracle
   - [x] Added 12 parity cases for the fixes; 3 fatal-crash cases use `exit_stdout_files` (stack-trace wording non-functional, D-003)
   - [x] Re-review + full gates green: G-FMT / G-LINT / G-TEST / G-PARITY (131/131) / G-SMOKE
-- [ ] Phase 6 (S6): Ship — release builds per §10.1, artifact verification, gates green
+- [x] Phase 6 (S6): Ship — release builds per §10.1, artifact verification, gates green
+  - [x] G-BUILD: all six §10.1 targets build (locally via `cargo zigbuild --release --locked`, and in CI on native runners) — primary musl fully static (`ldd` → not a dynamic executable), `*-gnu` symbol versions ≤ the `.2.18` pin (x86_64→2.16, aarch64→2.17), macOS ≥ 13.0 (`MACOSX_DEPLOYMENT_TARGET=13.0`)
+  - [x] G-AUDIT green in CI (`cargo audit`, lint job); G-CI green on the S5 PR and on `main` (run 45428847081); `nightly` release publishes all six artifacts
 - [ ] Phase 7 (S7): Upstream sync (recurring)
