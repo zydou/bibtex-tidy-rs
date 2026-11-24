@@ -1,0 +1,16 @@
+{
+  "name": "spec-strip-double-brace-strip-double-braces",
+  "args": [
+    "--strip-enclosing-braces"
+  ],
+  "stdin": "@inproceedings{Smith2009,\n    author=\"Caroline JA Smith\",\n    year=2009,\n    month=dec,\n    title={{Quantum somethings}},journal={Journal of {B}lah},\n    booktitle={JOURNAL OF SOMETHINGS}\n  }\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@inproceedings{Smith2009,\n  author        = \"Caroline JA Smith\",\n  year          = 2009,\n  month         = dec,\n  title         = {Quantum somethings},\n  journal       = {Journal of {B}lah},\n  booktitle     = {JOURNAL OF SOMETHINGS}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "spec-escape-leave-existing-latex-commands-and-math-expressions-unchanged",
+  "args": [
+    "--escape=new"
+  ],
+  "stdin": "@misc{latex,\n  title = {Outside é, inside \\textit{é}, math $é$}\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@misc{latex,\n  title         = {Outside \\'{e}, inside \\textit{é}, math $é$}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

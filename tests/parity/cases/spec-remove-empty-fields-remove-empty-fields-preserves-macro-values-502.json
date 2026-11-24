@@ -1,0 +1,16 @@
+{
+  "name": "spec-remove-empty-fields-remove-empty-fields-preserves-macro-values-502",
+  "args": [
+    "--remove-empty-fields"
+  ],
+  "stdin": "@ARTICLE{epsf,\n  title = {{Toward High-Precision Astrometry with WFPC2. I. Deriving an Accurate Point-Spread Function}},\n  journal = {\\pasp},\n  pages = {},\n  year = {2000},\n  day\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@article{epsf,\n  title         = {{Toward High-Precision Astrometry with WFPC2. I. Deriving an Accurate Point-Spread Function}},\n  journal       = {\\pasp},\n  year          = {2000}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

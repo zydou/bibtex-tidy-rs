@@ -1,0 +1,16 @@
+{
+  "name": "spec-escape-keep-vertical-bar-unescaped-458",
+  "args": [
+    "--escape=new"
+  ],
+  "stdin": "@misc{pipe,\n  title = {A | B}\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@misc{pipe,\n  title         = {A | B}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

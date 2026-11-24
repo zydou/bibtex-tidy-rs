@@ -1,0 +1,16 @@
+{
+  "name": "spec-escape-escape-special-characters",
+  "args": [
+    "--escape=new"
+  ],
+  "stdin": "@misc{q,\n  author = {Chars \\\", _, $, @, &, é, ɛ, ū, {\"}},\n  title = {Math expression $\\\\alpha$ stay unescaped}\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@misc{q,\n  author        = {Chars \\\", \\_, \\$, \\@, \\&, \\'{e}, ɛ, \\={u}, {\"}},\n  title         = {Math expression $\\\\alpha$ stay unescaped}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

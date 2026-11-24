@@ -1,0 +1,14 @@
+{
+  "name": "spec-at-symbol-in-title-in-title",
+  "args": [],
+  "stdin": "@article{ art,\nAuthor = {No, one},\nTitle = {{Blah blah blah blah blah blah blah blah blah blah blah blah blah blah\n  @blah blah blah blah blah.}},\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@article{art,\n  author        = {No, one},\n  title         = {{Blah blah blah blah blah blah blah blah blah blah blah blah blah blah \\@blah blah blah blah blah.}}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "spec-empty-entry-empty-entry",
+  "args": [],
+  "stdin": "@misc{emptyref,\n  \n}\n@misc{emptyref2\n  \n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@misc{emptyref,\n}\n@misc{emptyref2,\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

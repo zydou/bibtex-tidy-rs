@@ -1,0 +1,16 @@
+{
+  "name": "spec-enclosing-braces-around-command-enclosing-braces-should-keep-braces-directly-around-commands",
+  "args": [
+    "--enclosing-braces"
+  ],
+  "stdin": "@incollection{BlattelMink2021,\n\ttitle = {{Das Innovationsverst{\\\"a}ndnis von Joseph A. Schumpeter}},\n\tauthor = {Bl{\\\"a}ttel-Mink, Birgit},\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@incollection{BlattelMink2021,\n  title         = {{Das Innovationsverst{\\\"a}ndnis von Joseph A. Schumpeter}},\n  author        = {Bl{\\\"a}ttel-Mink, Birgit}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

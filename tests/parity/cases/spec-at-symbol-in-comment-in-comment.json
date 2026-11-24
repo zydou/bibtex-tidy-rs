@@ -1,0 +1,14 @@
+{
+  "name": "spec-at-symbol-in-comment-in-comment",
+  "args": [],
+  "stdin": "@blah @article{foo,foo=bar}\nfoo@blah @article{bar,foo=bar}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@blah\n@article{foo,\n  foo           = bar\n}\nfoo@blah\n@article{bar,\n  foo           = bar\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

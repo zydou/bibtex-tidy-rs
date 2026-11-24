@@ -1,0 +1,16 @@
+{
+  "name": "spec-blank-lines-insert-blank-lines-between-blocks",
+  "args": [
+    "--blank-lines"
+  ],
+  "stdin": "@preamble{Foo}\nComment\n@article{foo,\n  title={Foo}\n}\n@article{bar,\n  title={Bar}\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@preamble{Foo}\n\nComment\n@article{foo,\n  title         = {Foo}\n}\n\n@article{bar,\n  title         = {Bar}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

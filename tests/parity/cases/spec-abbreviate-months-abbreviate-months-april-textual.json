@@ -1,0 +1,16 @@
+{
+  "name": "spec-abbreviate-months-abbreviate-months-april-textual",
+  "args": [
+    "--months"
+  ],
+  "stdin": "@article{foo, title={Foo}, month = {april} }\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@article{foo,\n  title         = {Foo},\n  month         = apr\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "spec-spacing-before-first-entry-spacing-before-first-entry",
+  "args": [
+    "--no-tidy-comments"
+  ],
+  "stdin": "\t@article{a,\n\t\ttitle = {Something},\n\t\t}\n\n@article{b,\n\t\ttitle = {Something},\n}\n\n\t@article{c,\n\t\ttitle = {Something},\n\t}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@article{a,\n  title         = {Something}\n}\n@article{b,\n  title         = {Something}\n}\n@article{c,\n  title         = {Something}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

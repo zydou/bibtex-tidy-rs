@@ -1,0 +1,14 @@
+{
+  "name": "spec-one-line-bib-one-line-bib",
+  "args": [],
+  "stdin": "@preamble{ \"Maintained by \" # maintainer }@string{mar = \"march\"}@book{sweig42,author = {Stefan Sweig},title = {The impossible book},publisher = {Dead Poet Society},year = 1942,  month = mar}@article{thing_a,title = {blah},  weird-key = \"{cheese} {\"}in brie{\"}\"}% another comment @inproceedings{Smith2009,  author = \"Caroline JA Smith\",  year = 2009,  month = dec,title = {{Quantum somethings}},journal = {Journal of {B}lah}}@conference_at{4,a__ = \"{Caroline JA Smith}\",_#bo = {Q{Uantum} {s}omethings},key with spaces = thing}@comment{boo}@book{steward03,author = {Martha Steward},title      = {Cooking behind bars},publisher = {Culinary Expert Series},year = 2003}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@preamble{ \"Maintained by \" # maintainer }\n@string{mar = \"march\"}\n@book{sweig42,\n  author        = {Stefan Sweig},\n  title         = {The impossible book},\n  publisher     = {Dead Poet Society},\n  year          = 1942,\n  month         = mar\n}\n@article{thing_a,\n  title         = {blah},\n  weird-key     = \"{cheese} {\"}in brie{\"}\"\n}\n% another comment\n@inproceedings{Smith2009,\n  author        = \"Caroline JA Smith\",\n  year          = 2009,\n  month         = dec,\n  title         = {{Quantum somethings}},\n  journal       = {Journal of {B}lah}\n}\n@conference_at{4,\n  a__           = \"{Caroline JA Smith}\",\n  _#bo          = {Q{Uantum} {s}omethings},\n  key with spaces = thing\n}\n@comment{boo}\n@book{steward03,\n  author        = {Martha Steward},\n  title         = {Cooking behind bars},\n  publisher     = {Culinary Expert Series},\n  year          = 2003\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

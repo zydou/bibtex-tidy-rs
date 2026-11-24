@@ -1,0 +1,14 @@
+{
+  "name": "spec-leading-commas-leading-commas-issue",
+  "args": [],
+  "stdin": "@ARTICLE{Cesar2013\n, author = {Jean César}\n, title = {An amazing title}\n, year = {2013}\n, month = jan\n, volume = {12}\n, pages = {12--23}\n, journal = {Nice Journal}\n, abstract = {This is an abstract. This line should be long enough to test}\n, comments = {A comment}\n, keywords = {keyword1, keyword2}\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@article{Cesar2013,\n  author        = {Jean C\\'{e}sar},\n  title         = {An amazing title},\n  year          = {2013},\n  month         = jan,\n  volume        = {12},\n  pages         = {12--23},\n  journal       = {Nice Journal},\n  abstract      = {This is an abstract. This line should be long enough to test},\n  comments      = {A comment},\n  keywords      = {keyword1, keyword2}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

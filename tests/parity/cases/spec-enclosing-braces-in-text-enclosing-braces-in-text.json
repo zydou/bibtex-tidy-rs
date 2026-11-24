@@ -1,0 +1,16 @@
+{
+  "name": "spec-enclosing-braces-in-text-enclosing-braces-in-text",
+  "args": [
+    "--enclosing-braces"
+  ],
+  "stdin": "@article{Foo,\n  author = \"Foo\",\n\ttitle = {Bar \\textit{foo\\textasteriskcentered}}\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@article{Foo,\n  author        = \"Foo\",\n  title         = {{Bar \\textit{foo\\textasteriskcentered}}}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

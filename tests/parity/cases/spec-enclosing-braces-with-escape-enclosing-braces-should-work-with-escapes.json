@@ -1,0 +1,16 @@
+{
+  "name": "spec-enclosing-braces-with-escape-enclosing-braces-should-work-with-escapes",
+  "args": [
+    "--enclosing-braces"
+  ],
+  "stdin": "@article{foo,\n  title         = {{bar \\& baz}},\n  author={Garc{\\'\\i}a-Patr{\\'o}n, Ra{\\'u}l and Renema, Jelmer J and Shchesnovich, Valery}\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@article{foo,\n  title         = {{bar \\& baz}},\n  author        = {Garc{\\'\\i}a-Patr{\\'o}n, Ra{\\'u}l and Renema, Jelmer J and Shchesnovich, Valery}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

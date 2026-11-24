@@ -1,0 +1,16 @@
+{
+  "name": "spec-sort-special-sort-entries-by-special-entries-first",
+  "args": [
+    "--sort=special"
+  ],
+  "stdin": "%references\n@article{foo,\n  title=\"Foo\"\n}\n@preamble{{abc}}\n@xdata{data,a={1}}\n% last thing\n@article{bar,\n  title=\"Bar\"\n}\n@string{fooobaar}\n@article{foobar,\n  title=\"Bar\"\n}\n% another last thing\n@string{fooo}\n@xdata{moo,boo={hoo}}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@preamble{{abc}}\n@xdata{data,\n  a             = {1}\n}\n@string{fooobaar}\n% another last thing\n@string{fooo}\n@xdata{moo,\n  boo           = {hoo}\n}\n%references\n@article{foo,\n  title         = \"Foo\"\n}\n% last thing\n@article{bar,\n  title         = \"Bar\"\n}\n@article{foobar,\n  title         = \"Bar\"\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

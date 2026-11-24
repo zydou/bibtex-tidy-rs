@@ -1,0 +1,14 @@
+{
+  "name": "spec-multiline-field-multiline-fields-86-177-multiline-fields-198-acm-bibtex",
+  "args": [],
+  "stdin": " % Entries @ARTICLE{Cesar2013, author = {{A},\n B. \r\nand {C},\rD.}, title = {An amazing title}, volume=\"n.s.~2\", }",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "% Entries\n@article{Cesar2013,\n  author        = {{A}, B. and {C}, D.},\n  title         = {An amazing title},\n  volume        = \"n.s.~2\"\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}
