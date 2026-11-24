@@ -148,6 +148,17 @@ fn root_ctx() -> Ctx<'static> {
     }
 }
 
+/// Run a single entry-level visitor over the whole tree (children are walked by default).
+pub fn walk_entries(root: Root, visit: EntryVisitor) -> Root {
+    walk(
+        root,
+        &Visitors {
+            entry: Some(visit),
+            ..Visitors::default()
+        },
+    )
+}
+
 /// Walk the tree, applying visitors and rebuilding changed branches.
 pub fn walk(root: Root, visitors: &Visitors) -> Root {
     if let Some(v) = &visitors.root

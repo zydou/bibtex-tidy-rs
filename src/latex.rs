@@ -36,6 +36,28 @@ pub struct Command {
     pub args: Vec<Block>,
 }
 
+impl LatexNode {
+    /// Render the node as plain text. A text node drops double quotes (a deliberate hack
+    /// in the original to work around `{"}` escapes).
+    pub fn render_as_text(&self) -> String {
+        match self {
+            LatexNode::Block(b) => b.children.iter().map(LatexNode::render_as_text).collect(),
+            LatexNode::Text(t) => t.replace('"', ""),
+            LatexNode::Math(t) => t.clone(),
+            LatexNode::Command(c) => c
+                .args
+                .iter()
+                .map(|arg| {
+                    arg.children
+                        .iter()
+                        .map(LatexNode::render_as_text)
+                        .collect::<String>()
+                })
+                .collect(),
+        }
+    }
+}
+
 impl Block {
     pub fn new(kind: BlockKind) -> Self {
         Block {
@@ -235,4 +257,24 @@ pub fn stringify(block: &Block) -> String {
         BlockKind::Curly => format!("{{{content}}}"),
         BlockKind::Square => format!("[{content}]"),
     }
+}
+
+/// Remove curly-brace grouping unless a group contains (or is) a command. Port of
+/// `flattenLaTeX` (used by the `remove-braces` transform).
+pub fn flatten(block: &Block) -> Block {
+    let mut new_block = Block::new(block.kind);
+    for child in &block.children {
+        if let LatexNode::Block(b) = child
+            && b.kind == BlockKind::Curly
+            && b.children
+                .iter()
+                .all(|c| !matches!(c, LatexNode::Command(_)))
+        {
+            let flattened = flatten(b);
+            new_block.children.extend(flattened.children);
+            continue;
+        }
+        new_block.children.push(child.clone());
+    }
+    new_block
 }
