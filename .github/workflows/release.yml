@@ -61,6 +61,11 @@ jobs:
         # No --all-features: the project keeps its feature set minimal.
         run: cargo clippy --all-targets --locked -- -D warnings
 
+      - name: parity
+        # Replay the committed parity fixtures against the Rust binary. Host-independent and
+        # needs no upstream checkout (the fixtures are committed), so it runs once here.
+        run: cargo test --test parity_check -- --ignored
+
       - name: install cargo-audit
         uses: taiki-e/install-action@v2
         with:
