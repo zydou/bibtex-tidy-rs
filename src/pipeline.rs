@@ -101,7 +101,13 @@ pub fn generate_pipeline(options: &Options) -> Vec<TransformFn> {
         &[],
         transforms::format_page_range(),
     ));
-    // TODO(generate-keys / merge-entries): wired when ported.
+    if let Some(template) = &options.generate_keys {
+        pipeline.push(tr(
+            "generate-keys",
+            &[],
+            transforms::generate_keys(template.clone()),
+        ));
+    }
     if let Some(max) = options.max_authors {
         pipeline.push(tr("limit-authors", &[], transforms::limit_authors(max)));
     }
@@ -112,6 +118,13 @@ pub fn generate_pipeline(options: &Options) -> Vec<TransformFn> {
             transforms::lowercase_entry_type(),
         ));
         pipeline.push(tr("lowercase-fields", &[], transforms::lowercase_fields()));
+    }
+    if options.merge.is_some() || options.duplicates.is_some() {
+        pipeline.push(tr(
+            "merge-entries",
+            &["generate-keys", "sort-entries"],
+            crate::duplicates::merge_entries(options.duplicates.clone(), options.merge),
+        ));
     }
     if !options.omit.is_empty() {
         pipeline.push(tr(

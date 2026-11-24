@@ -1,8 +1,11 @@
 //! Entry point for the `bibtex-tidy` port. Port of `upstream/src/cli/cli.ts`.
 
 mod ast;
+mod duplicates;
 mod format;
+mod generate_keys;
 mod latex;
+mod name;
 mod options;
 mod parser;
 mod pipeline;
@@ -99,10 +102,16 @@ fn tidy_stdin(raw: &HashMap<String, OptVal>, silent: bool) {
             &path,
             false,
             get_bool(raw, "quiet").unwrap_or(false),
+            is_merge(raw),
         );
     } else {
         print!("{}", result.bibtex);
     }
+}
+
+/// Whether the merge strategy is enabled (used for the "N entries merged" line).
+fn is_merge(raw: &HashMap<String, OptVal>) -> bool {
+    get_bool(raw, "merge").unwrap_or(false) || get_str(raw, "merge").is_some()
 }
 
 fn tidy_input_files(input_files: &[String], raw: &HashMap<String, OptVal>, silent: bool) {
@@ -153,6 +162,7 @@ fn tidy_input_files(input_files: &[String], raw: &HashMap<String, OptVal>, silen
                 input_file,
                 backup,
                 get_bool(raw, "quiet").unwrap_or(false),
+                is_merge(raw),
             );
         }
     } else if input_files.len() > 1 {
@@ -186,6 +196,7 @@ fn tidy_input_files(input_files: &[String], raw: &HashMap<String, OptVal>, silen
                 &path,
                 backup,
                 get_bool(raw, "quiet").unwrap_or(false),
+                is_merge(raw),
             );
         } else {
             print!("{}", result.bibtex);
@@ -193,7 +204,7 @@ fn tidy_input_files(input_files: &[String], raw: &HashMap<String, OptVal>, silen
     }
 }
 
-fn tidy_to_output_file(result: &TidyResult, path: &str, backup: bool, quiet: bool) {
+fn tidy_to_output_file(result: &TidyResult, path: &str, backup: bool, quiet: bool, merge: bool) {
     if backup {
         let _ = std::fs::copy(path, format!("{path}.original"));
     }
@@ -208,6 +219,14 @@ fn tidy_to_output_file(result: &TidyResult, path: &str, backup: bool, quiet: boo
             eprintln!("{}: {}", warning.code, warning.message);
         }
         println!("Done. Successfully tidied {} entries.", result.count);
+        if merge {
+            let dupes = result
+                .warnings
+                .iter()
+                .filter(|w| w.code == "DUPLICATE_ENTRY")
+                .count();
+            println!("{dupes} entries merged");
+        }
     }
 }
 

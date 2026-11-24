@@ -83,3 +83,12 @@ pub fn unwrap_text(s: &str) -> String {
     }
     out.replace(PARA, "\n\n")
 }
+
+/// Strip every non-alphanumeric character and lowercase the rest. Port of `alphaNum`
+/// (used to normalize DOIs, citation tokens, and abstracts for duplicate detection).
+pub fn alpha_num(s: &str) -> String {
+    s.chars()
+        .filter(|c| c.is_ascii_alphanumeric())
+        .map(|c| c.to_ascii_lowercase())
+        .collect()
+}

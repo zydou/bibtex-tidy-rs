@@ -1,0 +1,16 @@
+{
+  "name": "spec-duplicate-dois-duplicate-doi-warnings",
+  "args": [
+    "--duplicates=doi"
+  ],
+  "stdin": "@article{a,\n\ttitle={foo},\n\tdoi=1\n}\n@article{b,\n\ttitle={bar},\n\tdoi=1\n}\n@article{c,\n\ttitle={moo},\n\tdoi=123\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@article{a,\n  title         = {foo},\n  doi           = 1\n}\n@article{b,\n  title         = {bar},\n  doi           = 1\n}\n@article{c,\n  title         = {moo},\n  doi           = 123\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

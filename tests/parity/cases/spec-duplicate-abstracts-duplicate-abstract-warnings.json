@@ -1,0 +1,16 @@
+{
+  "name": "spec-duplicate-abstracts-duplicate-abstract-warnings",
+  "args": [
+    "--duplicates=abstract"
+  ],
+  "stdin": "@article{a,\n\ttitle={foo},\n\tabstract=\"  something blah BLAH.\"\n}\n@article{b,\n\ttitle={bar},\n\tabstract={Something blah blah}\n}\n@article{c,\n\ttitle={bar},\n\tabstract={Something completely different}\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@article{a,\n  title         = {foo},\n  abstract      = \"  something blah BLAH.\"\n}\n@article{b,\n  title         = {bar},\n  abstract      = {Something blah blah}\n}\n@article{c,\n  title         = {bar},\n  abstract      = {Something completely different}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "spec-duplicate-merge-combine-merge-duplicates-combine",
+  "args": [
+    "--merge=combine"
+  ],
+  "stdin": "@book{sweig42,\n\ttitle        = {The impossible book},\n\tauthor       = {Stefa{n} Sweig},\n\tyear         = 1942,\n\tmonth        = mar,\n\tpublisher    = {Dead Poet Society}\n}\n@book{sweigdd42,\n\ttitle        = {The impossible BOOK},\n\tauthor       = {Stefa{n} Sweig},\n\tyear         = 1942,\n\tmonth        = mar,\n\tpublisher    = {Dead Poet Society},\n\t\tn=1\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@book{sweig42,\n  title         = {The impossible book},\n  author        = {Stefa{n} Sweig},\n  year          = 1942,\n  month         = mar,\n  publisher     = {Dead Poet Society},\n  n             = 1\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}
