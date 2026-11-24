@@ -271,11 +271,20 @@ pub fn indent_fields(indent: &str) -> TransformFn {
 }
 
 /// Pad the space between each field name and `=` so values line up at `column`.
-pub fn align_values(column: usize) -> TransformFn {
+/// `column` is f64 to replicate JS number semantics: `Math.max(NaN - len, 1)` = NaN and
+/// `" ".repeat(NaN)` = "" (no padding), whereas a real column pads normally.
+pub fn align_values(column: f64) -> TransformFn {
     Box::new(move |ast| {
         let visitors = Visitors {
             field: Some(Box::new(move |field, _ctx| {
-                let pad = column.saturating_sub(field.name.chars().count()).max(1);
+                // Upstream: " ".repeat(Math.max(column - fieldName.length, 1)).
+                // Math.max(NaN, 1) = NaN; " ".repeat(NaN) = "".
+                let pad = if column.is_nan() {
+                    0
+                } else {
+                    let diff = column - field.name.chars().count() as f64;
+                    diff.max(1.0) as usize
+                };
                 Some(vec![Field {
                     value_prefix: " ".repeat(pad),
                     ..field
@@ -319,7 +328,10 @@ pub fn field_commas(trailing: bool) -> TransformFn {
 
 /// Re-wrap long braced values at `wrap` columns. `align` is the value column (for the
 /// multi-line indent) and `indent` the field indent.
-pub fn wrap_values(indent: &str, align: usize, wrap: Option<usize>) -> TransformFn {
+/// `align`/`wrap` are f64 to replicate JS number semantics. `wrapValues` is always
+/// pushed; the on/off decision lives in the gate `if ((wrap && lineLength > wrap) ||
+/// multiLine)`, where `wrap` of 0/NaN is falsy (JS truthiness) so no wrapping happens.
+pub fn wrap_values(indent: &str, align: f64, wrap: Option<f64>) -> TransformFn {
     let indent = indent.to_string();
     Box::new(move |ast| {
         let indent = indent.clone();
@@ -342,13 +354,7 @@ pub fn wrap_values(indent: &str, align: usize, wrap: Option<usize>) -> Transform
     })
 }
 
-fn wrap_value(
-    node: &Value,
-    indent: &str,
-    align: usize,
-    wrap: Option<usize>,
-    single: bool,
-) -> Value {
+fn wrap_value(node: &Value, indent: &str, align: f64, wrap: Option<f64>, single: bool) -> Value {
     let braced = match node {
         Value::Braced(b) => b,
         _ => return node.clone(),
@@ -357,16 +363,23 @@ fn wrap_value(
     if single {
         value = value.trim().to_string();
     }
+    // `{align}` in a JS template string renders NaN as "NaN"; Rust's f64 Display does
+    // the same, so this matches the upstream lineLength computation.
     let line_length = format!("{indent}{align}{{{value}}}").chars().count();
     let multi_line = value.contains("\n\n");
-    if wrap.map(|w| line_length > w).unwrap_or(false) || multi_line {
+    // JS: `wrap && lineLength > wrap`. wrap of 0/NaN is falsy → no wrap.
+    let wrap_truthy = wrap.is_some_and(|w| w != 0.0 && !w.is_nan());
+    let over = wrap_truthy && wrap.is_some_and(|w| line_length as f64 > w);
+    if over || multi_line {
         let val_indent = indent.repeat(2);
         let paragraphs: Vec<String> = value
             .split("\n\n")
             .map(|p| {
-                if let Some(wrap_col) = wrap {
-                    wrap_text(p, wrap_col.saturating_sub(val_indent.chars().count()))
-                        .join(&format!("\n{val_indent}"))
+                // JS: `if (wrap) { ...wrapText... } else { paragraph }`.
+                if wrap_truthy {
+                    let wrap_col = wrap.unwrap();
+                    let col = (wrap_col - val_indent.chars().count() as f64).max(0.0) as usize;
+                    wrap_text(p, col).join(&format!("\n{val_indent}"))
                 } else {
                     p.to_string()
                 }
@@ -763,13 +776,9 @@ fn strip_enclosing_braces(s: &str) -> Option<String> {
 pub fn remove_comments() -> TransformFn {
     Box::new(|ast| {
         let visitors = Visitors {
-            text: Some(Box::new(|text, _ctx| {
-                if is_bibtex_comment_text(&text.text) {
-                    Some(vec![])
-                } else {
-                    Some(vec![BibtexNode::Text(text)])
-                }
-            })),
+            // Upstream removes EVERY text node (free-text comments included), plus
+            // `@comment` blocks. Port of `text: () => []`.
+            text: Some(Box::new(|_text, _ctx| Some(vec![]))),
             block: Some(Box::new(|block, _ctx| {
                 if matches!(block.inner, Some(BlockInner::Comment { .. })) {
                     Some(vec![])

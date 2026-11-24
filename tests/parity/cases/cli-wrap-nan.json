@@ -1,0 +1,16 @@
+{
+  "name": "cli-wrap-nan",
+  "args": [
+    "--wrap=abc"
+  ],
+  "stdin": "@article{a, year={2023}, title={T}}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@article{a,\n  year          = {2023},\n  title         = {T}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

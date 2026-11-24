@@ -4,9 +4,11 @@
 
 use std::collections::HashMap;
 
-pub const DEFAULT_ALIGN: usize = 14;
+// Stored as f64 to faithfully replicate JS number semantics: `--align=abc` produces
+// NaN (not 0), and NaN flows through Math.max / String.repeat differently from 0.
+pub const DEFAULT_ALIGN: f64 = 14.0;
 pub const DEFAULT_SPACE: usize = 2;
-pub const DEFAULT_WRAP: usize = 80;
+pub const DEFAULT_WRAP: f64 = 80.0;
 pub const DEFAULT_SORT: [&str; 1] = ["key"];
 pub const DEFAULT_MERGE_CHECK: [&str; 3] = ["doi", "citation", "abstract"];
 pub const DEFAULT_FIELD_SORT: [&str; 24] = [
@@ -75,6 +77,21 @@ pub enum DuplicateRule {
 }
 
 /// Fully resolved options after applying CLI overrides, `convertBoolean`, and defaults.
+/// The `--generate-keys` template source. The CLI arm `(args) => (args.length > 0 ? args :
+/// true)` returns an ARRAY when a value is given and `true` (→ the default template string)
+/// when bare. Array-ness is observable: `generateKeys` tests `entryKeyTemplate.includes(...)`,
+/// which is exact-element match on an array but substring match on a string; a template that
+/// already contains `[duplicateLetter]`/`[duplicateNumber]` skips the auto-append and is then
+/// passed to `parseEntryKeyTemplate` as a non-string → upstream throws. Port of the
+/// `Options.generateKeys` union (string | string[] | boolean).
+#[derive(Clone, Debug, PartialEq)]
+pub enum KeyTemplate {
+    /// Bare `--generate-keys` → the default template (a string).
+    Default,
+    /// `--generate-keys=<v>[,<v>…]` → the array of values.
+    List(Vec<String>),
+}
+
 #[derive(Clone, Debug)]
 pub struct Options {
     pub help: bool,
@@ -92,8 +109,8 @@ pub struct Options {
     pub tidy_comments: bool,
     pub tab: bool,
     pub space: usize,
-    pub align: usize,
-    pub wrap: Option<usize>,
+    pub align: f64,
+    pub wrap: Option<f64>,
     pub curly: bool,
     pub numeric: bool,
     pub months: bool,
@@ -109,8 +126,8 @@ pub struct Options {
     pub sort_fields: Option<Vec<String>>,
     pub merge: Option<MergeStrategy>,
     pub duplicates: Option<Vec<DuplicateRule>>,
-    pub generate_keys: Option<String>,
-    pub max_authors: Option<usize>,
+    pub generate_keys: Option<KeyTemplate>,
+    pub max_authors: Option<f64>,
     pub enclosing_braces: Option<Vec<String>>,
     pub remove_braces: Option<Vec<String>>,
 }
@@ -368,10 +385,14 @@ fn resolve_cli_arg(key: &str, values: &[String]) -> Option<(String, OptVal)> {
                 Some(("space".to_string(), OptVal::Bool(true)))
             }
         }
-        "--align" => Some((
-            "align".to_string(),
-            OptVal::Num(js_number(values.first().map(|s| s.as_str()).unwrap_or(""))),
-        )),
+        "--align" => {
+            // Upstream: `(args) => Number(args[0])`. Bare `--align` → Number(undefined) = NaN.
+            let n = match values.first() {
+                Some(s) => js_number(s),
+                None => f64::NAN,
+            };
+            Some(("align".to_string(), OptVal::Num(n)))
+        }
         "--sort" => {
             if !values.is_empty() {
                 Some(("sort".to_string(), OptVal::List(values.to_vec())))
@@ -379,11 +400,22 @@ fn resolve_cli_arg(key: &str, values: &[String]) -> Option<(String, OptVal)> {
                 Some(("sort".to_string(), OptVal::Bool(true)))
             }
         }
-        "--sort-fields" | "--sort-properties" => {
+        "--sort-fields" => {
             if !values.is_empty() {
                 Some(("sort-fields".to_string(), OptVal::List(values.to_vec())))
             } else {
                 Some(("sort-fields".to_string(), OptVal::Bool(true)))
+            }
+        }
+        // `--sort-properties` is a deprecated legacy alias that upstream defines as its own
+        // option key (`sortProperties`) but the pipeline never reads — so it is a NO-OP in
+        // the original. We store it under its own key (consumed by nothing) to preserve that
+        // behavior rather than aliasing it to `sort-fields`.
+        "--sort-properties" => {
+            if !values.is_empty() {
+                Some(("sort-properties".to_string(), OptVal::List(values.to_vec())))
+            } else {
+                Some(("sort-properties".to_string(), OptVal::Bool(true)))
             }
         }
         "--duplicates" => {
@@ -425,10 +457,14 @@ fn resolve_cli_arg(key: &str, values: &[String]) -> Option<(String, OptVal)> {
                 Some(("generate-keys".to_string(), OptVal::Bool(true)))
             }
         }
-        "--max-authors" => Some((
-            "max-authors".to_string(),
-            OptVal::Num(js_number(values.first().map(|s| s.as_str()).unwrap_or(""))),
-        )),
+        "--max-authors" => {
+            // Upstream: `(args) => Number(args[0])`. Bare → Number(undefined) = NaN.
+            let n = match values.first() {
+                Some(s) => js_number(s),
+                None => f64::NAN,
+            };
+            Some(("max-authors".to_string(), OptVal::Num(n)))
+        }
         "--enclosing-braces" => {
             if !values.is_empty() {
                 Some((
@@ -568,16 +604,18 @@ pub fn normalize(raw: &HashMap<String, OptVal>) -> Options {
         _ => DEFAULT_SPACE,
     };
 
-    // align: convertBoolean {true: 14, false: 1}, default 14.
+    // align: convertBoolean {true: 14, false: 1}, default 14. Keep NaN (e.g.
+    // `--align=abc`) rather than coercing to 0 — alignValues treats NaN specially.
     o.align = match raw.get("align") {
-        Some(OptVal::Num(n)) => *n as usize,
-        Some(OptVal::Bool(false)) => 1,
+        Some(OptVal::Num(n)) => *n,
+        Some(OptVal::Bool(false)) => 1.0,
         _ => DEFAULT_ALIGN,
     };
 
-    // wrap: convertBoolean {true: 80, false: undefined}; default undefined.
+    // wrap: convertBoolean {true: 80, false: undefined}; default undefined. Keep NaN/0
+    // (both falsy inside wrapValues) rather than coercing to usize.
     o.wrap = match raw.get("wrap") {
-        Some(OptVal::Num(n)) => Some(*n as usize),
+        Some(OptVal::Num(n)) => Some(*n),
         Some(OptVal::Bool(true)) => Some(DEFAULT_WRAP),
         _ => None,
     };
@@ -648,13 +686,17 @@ pub fn normalize(raw: &HashMap<String, OptVal>) -> Options {
     };
 
     o.generate_keys = match raw.get("generate-keys") {
-        Some(OptVal::List(l)) => Some(l.join(",")),
-        Some(OptVal::Bool(true)) => Some(DEFAULT_KEY_TEMPLATE.to_string()),
+        // CLI `=v[,v…]` returns an array (exact-element `.includes` semantics downstream).
+        Some(OptVal::List(l)) => Some(KeyTemplate::List(l.clone())),
+        // Bare `--generate-keys` → `true` → convertBoolean → the default template string.
+        Some(OptVal::Bool(true)) => Some(KeyTemplate::Default),
         _ => None,
     };
 
+    // Preserve NaN/0 here; the JS-truthiness gate (`if (options.maxAuthors)`) is applied
+    // in the pipeline, so 0/NaN skip the transform.
     o.max_authors = match raw.get("max-authors") {
-        Some(OptVal::Num(n)) if !n.is_nan() => Some(*n as usize),
+        Some(OptVal::Num(n)) => Some(*n),
         _ => None,
     };
 

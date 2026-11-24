@@ -124,7 +124,9 @@ fn tidy_input_files(input_files: &[String], raw: &HashMap<String, OptVal>, silen
     if using_deprecated_stdio {
         eprintln!("NOTICE: In v2 you will need to specify --modify/-m to modify the input file.");
         modify = true;
-        backup = true;
+        // `options.backup ?? true`: default to a backup, but PRESERVE an explicit
+        // `--no-backup` (false) rather than overriding it.
+        backup = get_bool(raw, "backup").unwrap_or(true);
     }
 
     // The deprecation notice forces logging back on.
@@ -231,15 +233,16 @@ fn tidy_to_output_file(result: &TidyResult, path: &str, backup: bool, quiet: boo
 }
 
 fn read_stdin() -> String {
-    let mut buf = String::new();
-    let _ = std::io::stdin().read_to_string(&mut buf);
-    buf
+    // Node reads stdin with chunk decoding that replaces each invalid byte with U+FFFD
+    // (lossy). Mirror that rather than discarding the whole input on invalid UTF-8.
+    let mut bytes = Vec::new();
+    let _ = std::io::stdin().read_to_end(&mut bytes);
+    String::from_utf8_lossy(&bytes).into_owned()
 }
 
 fn read_file(path: &str) -> std::io::Result<String> {
-    let mut buf = String::new();
-    std::fs::File::open(path)?.read_to_string(&mut buf)?;
-    Ok(buf)
+    let bytes = std::fs::read(path)?;
+    Ok(String::from_utf8_lossy(&bytes).into_owned())
 }
 
 const HELP: &str = r#"Usage: bibtex-tidy [infile] [-o outfile] [option...]

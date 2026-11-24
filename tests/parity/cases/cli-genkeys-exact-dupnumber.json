@@ -1,0 +1,16 @@
+{
+  "name": "cli-genkeys-exact-dupnumber",
+  "args": [
+    "--generate-keys=[duplicateNumber]"
+  ],
+  "stdin": "@article{a, year={2023}, title={T}}\n",
+  "files": {},
+  "env": {},
+  "match": "exit_stdout_files",
+  "expected": {
+    "stdout": "",
+    "stderr": "file:///home/linuxbrew/Projects/bibtex-tidy/upstream/bin/bibtex-tidy:6045\n  const matches = template.matchAll(/\\[[^:\\]]+(?::[^:\\]]+)*\\]/g);\n                           ^\n\nTypeError: template.matchAll is not a function\n    at parseEntryKeyTemplate (file:///home/linuxbrew/Projects/bibtex-tidy/upstream/bin/bibtex-tidy:6045:28)\n    at generateKeys (file:///home/linuxbrew/Projects/bibtex-tidy/upstream/bin/bibtex-tidy:6313:26)\n    at Object.apply (file:///home/linuxbrew/Projects/bibtex-tidy/upstream/bin/bibtex-tidy:6456:23)\n    at tidy (file:///home/linuxbrew/Projects/bibtex-tidy/upstream/bin/bibtex-tidy:7211:30)\n    at tidyStdIn (file:///home/linuxbrew/Projects/bibtex-tidy/upstream/bin/bibtex-tidy:7424:18)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async start (file:///home/linuxbrew/Projects/bibtex-tidy/upstream/bin/bibtex-tidy:7400:5)\n\nNode.js v24.22.2\n",
+    "exit": 1,
+    "files": {}
+  }
+}

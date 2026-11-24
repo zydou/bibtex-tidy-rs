@@ -7,6 +7,7 @@
 
 use crate::ast::Entry;
 use crate::name::parse_name_list;
+use crate::options::{DEFAULT_KEY_TEMPLATE, KeyTemplate};
 use crate::value_nodes::render_field_value;
 use std::collections::HashMap;
 
@@ -22,12 +23,90 @@ enum KeyToken {
 
 /// Generate a new citation key for each entry (indexed by entry order). `None` means "keep
 /// the existing key". Port of `generateKeys`.
-pub fn generate_keys(entries: &[&Entry], entry_key_template: &str) -> Vec<Option<String>> {
-    let mut template = entry_key_template.to_string();
-    if !template.contains("[duplicateLetter]") && !template.contains("[duplicateNumber]") {
-        template = format!("{template}[duplicateLetter]");
+/// Special markers recognized by `generateKey`. Any marker that is not here AND is not
+/// all-uppercase (a field lookup) makes upstream throw `Invalid citation key token`.
+const SPECIAL_MARKERS: [&str; 11] = [
+    "auth",
+    "authEtAl",
+    "authors",
+    "authorsN",
+    "veryshorttitle",
+    "shorttitle",
+    "title",
+    "fulltitle",
+    "year",
+    "duplicateLetter",
+    "duplicateNumber",
+];
+
+/// Recognized modifiers; any others make upstream throw `Invalid modifier`.
+const MODIFIERS: [&str; 4] = ["required", "lower", "upper", "capitalize"];
+
+/// Resolve the `--generate-keys` template source into the final template string, replicating
+/// upstream's array-vs-string `includes` semantics and throwing on invalid tokens. Fails when:
+///   * a marker is neither special nor all-uppercase (field lookup) → `Invalid citation key
+///     token` (upstream throws from `generateKey`);
+///   * a modifier is unrecognized → `Invalid modifier`;
+///   * the template is an array that already contains `[duplicateLetter]`/`[duplicateNumber]`
+///     as an exact element → the auto-append is skipped and the raw array reaches
+///     `parseEntryKeyTemplate`, where `template.matchAll is not a function` throws.
+///
+/// All three are data-independent (they depend only on the static template), so resolving
+/// upfront and returning an error is behaviorally identical to the original's throw.
+pub fn resolve_template(kt: &KeyTemplate) -> Result<String, String> {
+    match kt {
+        KeyTemplate::Default => {
+            // The default template is a string containing `[duplicateNumber]`, so the
+            // substring `includes` check finds it and no auto-append happens.
+            let t = DEFAULT_KEY_TEMPLATE.to_string();
+            validate_markers(&t)?;
+            Ok(t)
+        }
+        KeyTemplate::List(items) => {
+            // Array `.includes` is exact-element match.
+            let has_dup = items
+                .iter()
+                .any(|e| e == "[duplicateLetter]" || e == "[duplicateNumber]");
+            if has_dup {
+                // Auto-append skipped; the raw array reaches parseEntryKeyTemplate → throw.
+                return Err("TypeError: template.matchAll is not a function".to_string());
+            }
+            // Template literal `${array}[duplicateLetter]` stringifies the array (join ",").
+            let joined = items.join(",");
+            let t = format!("{joined}[duplicateLetter]");
+            validate_markers(&t)?;
+            Ok(t)
+        }
     }
-    let parsed = parse_entry_key_template(&template);
+}
+
+/// Parse `template` and validate every marker and modifier, returning the upstream error
+/// message for the first invalid token. Port of the validation inside `generateKey`.
+fn validate_markers(template: &str) -> Result<(), String> {
+    for token in parse_entry_key_template(template) {
+        if let KeyToken::Marker {
+            marker, modifiers, ..
+        } = token
+        {
+            let is_special = SPECIAL_MARKERS.contains(&marker.as_str());
+            let is_field_lookup = marker == marker.to_uppercase();
+            if !is_special && !is_field_lookup {
+                return Err(format!("Invalid citation key token {marker}"));
+            }
+            for modifier in modifiers {
+                if !MODIFIERS.contains(&modifier.as_str()) {
+                    return Err(format!("Invalid modifier {modifier}"));
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+pub fn generate_keys(entries: &[&Entry], entry_key_template: &str) -> Vec<Option<String>> {
+    // The caller resolves the template (auto-append + validation) via `resolve_template`;
+    // parse it as-is here.
+    let parsed = parse_entry_key_template(entry_key_template);
 
     let values: Vec<HashMap<String, String>> = entries
         .iter()
