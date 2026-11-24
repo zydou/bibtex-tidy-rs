@@ -1,0 +1,16 @@
+{
+  "name": "spec-remove-empty-fields-off-remove-empty-fields-disabled",
+  "args": [
+    "--no-remove-empty-fields"
+  ],
+  "stdin": "@ARTICLE {feinberg1983technique,\n    number={1},\n    title={A technique for radiolabeling DNA restriction endonuclease fragments to high specific activity},\n  author=\"Feinberg, Andrew P and Vogelstein, Bert\",\n    journal    = {Analytical biochemistry},\n    volume = 132,\n    pages={},\n    year={},\n    day,\n    month={aug},\n    publisher={Elsevier},}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@article{feinberg1983technique,\n  number        = {1},\n  title         = {A technique for radiolabeling DNA restriction endonuclease fragments to high specific activity},\n  author        = \"Feinberg, Andrew P and Vogelstein, Bert\",\n  journal       = {Analytical biochemistry},\n  volume        = 132,\n  pages         = {},\n  year          = {},\n  day,\n  month         = {aug},\n  publisher     = {Elsevier}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

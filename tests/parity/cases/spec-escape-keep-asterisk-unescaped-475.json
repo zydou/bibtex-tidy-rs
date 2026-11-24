@@ -1,0 +1,16 @@
+{
+  "name": "spec-escape-keep-asterisk-unescaped-475",
+  "args": [
+    "--escape=new"
+  ],
+  "stdin": "@misc{asterisk,\n  title = {What the f*ck}\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@misc{asterisk,\n  title         = {What the f*ck}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

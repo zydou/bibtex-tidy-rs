@@ -1,0 +1,17 @@
+{
+  "name": "spec-sort-numeric-sort-entries-by-numeric-keys",
+  "args": [
+    "--sort=year,month,day",
+    "--numeric"
+  ],
+  "stdin": "@inproceedings{Q,\n  title = {Q},\n  month = apr,\n  year = 2008\n}\n@article{W,\n  title = {W},\n  month = feb,\n  year = 2008\n}\n@article{E,\n  title = {E},\n  month = jun,\n  year = 2008\n}\n@book{R,\n  title = {R},\n  month = dec,\n  year = 2008\n}\n@Misc{R,\n  title = {R},\n  month = nov,\n  year = 2009\n}\n@conference{T,\n  title = {T},\n  month = nov,\n  year = 2007\n}\n@ARTICLE{Y,\n  title = {Y},\n  month = jul,\n  year = 2007\n}\n@misc{U,\n  title = {U},\n  day = {14},\n  month = oct,\n  year = 2007\n}\n@misc{U,\n  title = {U},\n  day = 1,\n  month = oct,\n  year = 2007\n}\n@misc{U,\n  title = {U},\n  day = {12},\n  month = oct,\n  year = 2007\n}\n@inproceedings{I,\n  title = {I},\n  month = jan,\n  year = 2008\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@article{Y,\n  title         = {Y},\n  month         = jul,\n  year          = 2007\n}\n@misc{U,\n  title         = {U},\n  day           = 1,\n  month         = oct,\n  year          = 2007\n}\n@misc{U,\n  title         = {U},\n  day           = 12,\n  month         = oct,\n  year          = 2007\n}\n@misc{U,\n  title         = {U},\n  day           = 14,\n  month         = oct,\n  year          = 2007\n}\n@conference{T,\n  title         = {T},\n  month         = nov,\n  year          = 2007\n}\n@inproceedings{I,\n  title         = {I},\n  month         = jan,\n  year          = 2008\n}\n@article{W,\n  title         = {W},\n  month         = feb,\n  year          = 2008\n}\n@inproceedings{Q,\n  title         = {Q},\n  month         = apr,\n  year          = 2008\n}\n@article{E,\n  title         = {E},\n  month         = jun,\n  year          = 2008\n}\n@book{R,\n  title         = {R},\n  month         = dec,\n  year          = 2008\n}\n@misc{R,\n  title         = {R},\n  month         = nov,\n  year          = 2009\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

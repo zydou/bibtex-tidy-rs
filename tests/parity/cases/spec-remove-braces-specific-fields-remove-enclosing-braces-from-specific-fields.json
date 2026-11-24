@@ -1,0 +1,16 @@
+{
+  "name": "spec-remove-braces-specific-fields-remove-enclosing-braces-from-specific-fields",
+  "args": [
+    "--remove-braces=title,shorttitle"
+  ],
+  "stdin": "@ARTICLE {quant,\n  title         = {Quantifying {Madness} in {Green {Leaf}} Ants},\n  shorttitle    = {Quantifying \\\\textbf{Madness} in {Green {Leaf}} Ants}\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@article{quant,\n  title         = {Quantifying Madness in Green Leaf Ants},\n  shorttitle    = {Quantifying \\\\textbf{Madness} in Green Leaf Ants}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

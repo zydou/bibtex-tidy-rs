@@ -1,0 +1,16 @@
+{
+  "name": "spec-paragraph-paragraphs-in-values",
+  "args": [
+    "--align=20"
+  ],
+  "stdin": " @ARTICLE {foobar, title={Foo Bar}, abstract={ Paragraph 1\n ...continued\n \n\n Paragraph 2\r\n\r\nParagraph 3\r\rParagraph 4 }, }",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@article{foobar,\n  title               = {Foo Bar},\n  abstract            = {\n    Paragraph 1 ...continued\n\n    Paragraph 2\n\n    Paragraph 3\n\n    Paragraph 4\n  }\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

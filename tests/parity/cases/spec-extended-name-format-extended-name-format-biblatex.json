@@ -1,0 +1,14 @@
+{
+  "name": "spec-extended-name-format-extended-name-format-biblatex",
+  "args": [],
+  "stdin": "@CUSTOMD{LDN3,\n  OPTIONS     = {labelalphanametemplatename=customd},\n  AUTHOR\t    = {Vela, Luis and given={Ura Ru}, family={Juan}, suffix={Sr}, prefix={von}},\n}",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@customd{LDN3,\n  options       = {labelalphanametemplatename=customd},\n  author        = {Vela, Luis and given={Ura Ru}, family={Juan}, suffix={Sr}, prefix={von}}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

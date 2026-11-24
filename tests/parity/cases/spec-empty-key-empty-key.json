@@ -1,0 +1,14 @@
+{
+  "name": "spec-empty-key-empty-key",
+  "args": [],
+  "stdin": "@article{\n  title = \"A year of trees\",\n  volume = {5},\n  number = 6\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@article{\n  title         = \"A year of trees\",\n  volume        = {5},\n  number        = 6\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

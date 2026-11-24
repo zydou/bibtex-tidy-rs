@@ -1,0 +1,14 @@
+{
+  "name": "spec-concatenation-remove-empty-fields",
+  "args": [],
+  "stdin": "@ARTICLE {test,\n  author   = aubert#\" and \"#Varacca,\n  journal = abc # { 123 },\n    title = \"A\"#\"B\"\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@article{test,\n  author        = aubert # \" and \" # Varacca,\n  journal       = abc # { 123 },\n  title         = \"A\" # \"B\"\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

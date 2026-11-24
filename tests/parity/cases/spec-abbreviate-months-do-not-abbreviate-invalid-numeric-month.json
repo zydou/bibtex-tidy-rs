@@ -1,0 +1,16 @@
+{
+  "name": "spec-abbreviate-months-do-not-abbreviate-invalid-numeric-month",
+  "args": [
+    "--months"
+  ],
+  "stdin": "@article{foo, title={Foo}, month = {17} }\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@article{foo,\n  title         = {Foo},\n  month         = {17}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

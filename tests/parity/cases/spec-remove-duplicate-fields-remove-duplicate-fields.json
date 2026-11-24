@@ -1,0 +1,14 @@
+{
+  "name": "spec-remove-duplicate-fields-remove-duplicate-fields",
+  "args": [],
+  "stdin": "@book{test,\nauthor = \"Alan, Jo\",\nauthor = \"Alan, Les\",\nyear = {1990},\ntitle = {Methods}\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@book{test,\n  author        = \"Alan, Jo\",\n  year          = {1990},\n  title         = {Methods}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

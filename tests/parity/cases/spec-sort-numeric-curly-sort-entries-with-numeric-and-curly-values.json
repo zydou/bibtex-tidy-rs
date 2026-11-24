@@ -1,0 +1,18 @@
+{
+  "name": "spec-sort-numeric-curly-sort-entries-with-numeric-and-curly-values",
+  "args": [
+    "--sort",
+    "--curly",
+    "--numeric"
+  ],
+  "stdin": "@book{b,\n  title = {Second},\n  year = {2003}\n}\n@book{a,\n  title = {First},\n  year = {2001}\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@book{a,\n  title         = {First},\n  year          = 2001\n}\n@book{b,\n  title         = {Second},\n  year          = 2003\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

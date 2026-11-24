@@ -1,0 +1,16 @@
+{
+  "name": "spec-sort-multi-key-sort-entries-by-multiple-keys",
+  "args": [
+    "--sort=type,title"
+  ],
+  "stdin": "@inproceedings{Q,\n  title = {Q},\n  year = 2008\n}\n@article{W,\n  title = {W},\n  year = 2001\n}\n@article{E,\n  title = {E},\n  year = 2004\n}\n@book{R,\n  title = {R},\n  year = 2018\n}\n@Misc{R,\n  title = {R},\n  year = 2011\n}\n@conference{T,\n  title = {T},\n  year = 1998\n}\n@ARTICLE{Y,\n  title = {Y},\n  year = 2019\n}\n@misc{U,\n  title = {U},\n  year = 2001\n}\n@inproceedings{I,\n  title = {I},\n  year = 2018\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@article{E,\n  title         = {E},\n  year          = 2004\n}\n@article{W,\n  title         = {W},\n  year          = 2001\n}\n@article{Y,\n  title         = {Y},\n  year          = 2019\n}\n@book{R,\n  title         = {R},\n  year          = 2018\n}\n@conference{T,\n  title         = {T},\n  year          = 1998\n}\n@inproceedings{I,\n  title         = {I},\n  year          = 2018\n}\n@inproceedings{Q,\n  title         = {Q},\n  year          = 2008\n}\n@misc{R,\n  title         = {R},\n  year          = 2011\n}\n@misc{U,\n  title         = {U},\n  year          = 2001\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

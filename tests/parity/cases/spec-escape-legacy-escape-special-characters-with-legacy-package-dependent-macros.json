@@ -1,0 +1,16 @@
+{
+  "name": "spec-escape-legacy-escape-special-characters-with-legacy-package-dependent-macros",
+  "args": [
+    "--escape"
+  ],
+  "stdin": "@misc{q,\n  author = {Chars ↳}\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@misc{q,\n  author        = {Chars \\ElsevierGlyph{21B3}}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

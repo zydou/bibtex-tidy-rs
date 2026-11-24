@@ -1,0 +1,16 @@
+{
+  "name": "spec-escape-quoted-escape-special-characters-in-quoted-values-without-invalid-quotes-493",
+  "args": [
+    "--escape=new"
+  ],
+  "stdin": "@misc{q,\n  author = \"Gülbahar\"\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@misc{q,\n  author        = \"G{\\\"{u}}lbahar\"\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

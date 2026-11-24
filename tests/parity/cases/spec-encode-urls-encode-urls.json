@@ -1,0 +1,16 @@
+{
+  "name": "spec-encode-urls-encode-urls",
+  "args": [
+    "--encode-urls"
+  ],
+  "stdin": "@inproceedings{Smith2009,\n  url={http://example.com/something_with/unusual?characters=faoo#bar}\n  }\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@inproceedings{Smith2009,\n  url           = {http://example.com/something\\%5Fwith/unusual?characters=faoo#bar}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

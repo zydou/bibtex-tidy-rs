@@ -1,0 +1,16 @@
+{
+  "name": "spec-escape-leave-unsupported-unicode-punctuation-unchanged-instead-of-elsevierglyph-494",
+  "args": [
+    "--escape=new"
+  ],
+  "stdin": "@misc{punctuation,\n  title = {A ↳ B}\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@misc{punctuation,\n  title         = {A ↳ B}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}
