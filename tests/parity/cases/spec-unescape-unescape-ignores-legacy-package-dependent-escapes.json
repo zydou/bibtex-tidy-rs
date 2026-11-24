@@ -1,0 +1,16 @@
+{
+  "name": "spec-unescape-unescape-ignores-legacy-package-dependent-escapes",
+  "args": [
+    "--unescape"
+  ],
+  "stdin": "@misc{q,\n  title = {A \\ElsevierGlyph{21B3} B and f\\textasteriskcenteredck}\n}\n",
+  "files": {},
+  "env": {},
+  "match": "full",
+  "expected": {
+    "stdout": "@misc{q,\n  title         = {A \\ElsevierGlyph{21B3} B and f\\textasteriskcenteredck}\n}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}
